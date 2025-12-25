@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code 產生器</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 引入qrcode-generator JS庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.js"></script>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h2>QR Code 產生器</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="qrInput">輸入文字或網址:</label>
+                        <input type="text" id="qrInput" class="form-control" placeholder="輸入你想生成QR碼的文字或網址...">
+                    </div>
+                    <button id="generateBtn" class="btn btn-primary btn-block mb-4">生成QR Code</button>
+                    <div class="text-center">
+                        <canvas id="qrCanvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入Bootstrap JS和jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $('#generateBtn').click(function() {
+        let inputText = $('#qrInput').val();
+        if (inputText) {
+            let qr = qrcode(0, 'L');
+            qr.addData(inputText);
+            qr.make();
+            let canvas = document.getElementById('qrCanvas');
+            let ctx = canvas.getContext('2d');
+            let img = new Image();
+            img.src = qr.createDataURL(8, 4);
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+            };
+        } else {
+            alert('請輸入文字或網址！');
+        }
+    });
+</script>
+
+</body>
+</html>

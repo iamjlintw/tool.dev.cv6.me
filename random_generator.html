@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亂數產生器</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h2>亂數產生器</h2>
+                </div>
+                <div class="card-body">
+                    <form id="randomForm">
+                        <div class="form-group">
+                            <label for="minValue">最小值:</label>
+                            <input type="text" id="minValue" class="form-control" placeholder="輸入最小值..." pattern="\d*" required>
+                            <div class="invalid-feedback">
+                                請輸入有效的最小值。
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="maxLength">最長位數 (最大為20位):</label>
+                            <input type="number" id="maxLength" class="form-control" placeholder="輸入最長位數..." min="1" max="20" required>
+                            <div class="invalid-feedback">
+                                請輸入1到20之間的數字。
+                            </div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="padZero">
+                            <label class="form-check-label" for="padZero">填0</label>
+                        </div>
+                        <button type="button" id="generateBtn" class="btn btn-primary btn-block mb-4">生成亂數</button>
+                        <div class="form-group">
+                            <label for="outputValue">輸出值:</label>
+                            <input type="text" id="outputValue" class="form-control" readonly>
+                        </div>
+                        <button type="button" id="copyBtn" class="btn btn-secondary btn-block">複製輸出結果</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入Bootstrap JS和jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $('#generateBtn').click(function() {
+        if ($('#randomForm')[0].checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+            $('#randomForm').addClass('was-validated');
+            return;
+        }
+
+        let minValue = parseInt($('#minValue').val());
+        let maxLength = parseInt($('#maxLength').val());
+        let padZero = $('#padZero').prop('checked');
+
+        let maxValue = Math.pow(10, maxLength) - 1;
+        let randomValue = Math.floor(Math.random() * (maxValue - minValue + 1)) + minValue;
+
+        if (padZero) {
+            let output = String(randomValue).padStart(maxLength, '0');
+            $('#outputValue').val(output);
+        } else {
+            $('#outputValue').val(randomValue);
+        }
+    });
+
+    $('#copyBtn').click(function() {
+        let output = document.getElementById("outputValue");
+        output.select();
+        document.execCommand("copy");
+        alert("輸出結果已複製到剪貼簿！");
+    });
+</script>
+
+</body>
+</html>

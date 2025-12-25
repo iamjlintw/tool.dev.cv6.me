@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Markdown + Mermaid 讀取器</title>
+    <meta name="description" content="本地端純前端 Markdown 與 Mermaid 讀取器" />
+    <style>
+        :root {
+            --bg: #0b0c0f;
+            --panel: #151922;
+            --panel-2: #10141b;
+            --text: #e7eaf0;
+            --muted: #9aa4b2;
+            --accent: #6aa6ff;
+            --border: #212837;
+            --success: #2ecc71;
+            --warn: #f39c12;
+            --error: #e74c3c;
+            /* New colors for code blocks */
+            --code-bg: #0f1520;
+            --code-border: #2a3042;
+            --code-header-bg: #1a1f2d;
+            --code-header-text: #a0a8b7;
+            --copy-btn-bg: #2a3042;
+            --copy-btn-hover-bg: #343a4d;
+            --copy-btn-success: #2ecc71;
+        }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+        header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #0e1117, #0b0c0f);
+        }
+        header h1 { font-size: 16px; margin: 0; }
+        header .sub { color: var(--muted); font-size: 12px; }
+
+        .wrap { height: calc(100% - 57px); display: grid; grid-template-columns: 420px 1fr; gap: 0; }
+        .left, .right { height: 100%; overflow: auto; }
+        .left { background: var(--panel); border-right: 1px solid var(--border); }
+        .right { background: #0c0f14; }
+
+        .controls { padding: 12px 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .controls label { color: var(--muted); }
+        .controls .grow { flex: 1 1 auto; }
+        .controls .spacer { flex: 1; }
+
+        .btn {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn:hover { border-color: var(--accent); }
+
+        .io {
+            padding: 12px;
+            display: grid;
+            gap: 12px;
+        }
+        textarea {
+            width: 100%;
+            height: calc(100vh - 240px);
+            min-height: 200px;
+            resize: vertical;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .dropzone {
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            background: var(--panel-2);
+            color: var(--muted);
+            text-align: center;
+        }
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: #0f1520;
+            color: var(--text);
+        }
+
+        .preview {
+            padding: 24px 28px;
+            max-width: 1200px;
+        }
+        .preview h1, .preview h2, .preview h3 { border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .preview a { color: var(--accent); text-decoration: none; }
+
+        /* Improved code block styling with header and copy button */
+        .preview pre {
+            background: var(--code-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--code-border);
+            margin: 16px 0;
+        }
+        .preview pre code {
+            display: block;
+            padding: 16px;
+            color: #d1e0ff;
+            background: transparent;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        /* Code block header */
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--code-header-bg);
+            border-bottom: 1px solid var(--code-border);
+            font-size: 12px;
+            color: var(--code-header-text);
+        }
+
+        /* Copy button */
+        .copy-btn {
+            background: var(--copy-btn-bg);
+            color: var(--code-header-text);
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            background: var(--copy-btn-hover-bg);
+            color: var(--text);
+        }
+        .copy-btn.copied {
+            background: var(--copy-btn-success);
+            color: white;
+        }
+
+        .preview table { border-collapse: collapse; border: 1px solid var(--border); }
+        .preview th, .preview td { border: 1px solid var(--border); padding: 6px 8px; }
+        .status { color: var(--muted); padding: 0 12px 12px; font-size: 12px; }
+
+        .hidden { display: none !important; }
+
+        /* Global page drop overlay */
+        .page-drop {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 24, 32, 0.8);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            z-index: 9999;
+            border: 2px dashed var(--accent);
+            pointer-events: none;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* Code insert controls */
+        .code-insert-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .code-insert-controls select,
+        .code-insert-controls button {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .code-insert-controls button {
+            cursor: pointer;
+        }
+
+        .code-insert-controls button:hover {
+            border-color: var(--accent);
+        }
+
+        @media (max-width: 960px) {
+            .wrap { grid-template-columns: 1fr; }
+            .right { border-top: 1px solid var(--border); }
+        }
+    </style>
+    <!-- Libraries: no Node.js required, all from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js" integrity="sha256-xoB1Zy2Xbkd3OQVguqESGUhVvUQEsTZH2khVquH5Ngw=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js" integrity="sha256-6ksJCCykugrnG+ZDGgl2eHUdBFO5xSpNLHw5ohZu2fw=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js" integrity="sha256-e0o3JYsdjqKajf9eOe22FhioYSz9WofRY4dLKo3F6do=" crossorigin="anonymous"></script>
+</head>
+<body>
+<header>
+    <h1>Markdown + Mermaid 讀取器 <span class="sub">(純前端、支援貼上與本地檔)</span></h1>
+</header>
+<div class="wrap">
+    <div class="left">
+        <div class="controls">
+            <label><input type="radio" name="mode" value="paste" checked> 貼內容</label>
+            <label><input type="radio" name="mode" value="file"> 讀本地檔</label>
+            <span class="spacer"></span>
+            <label><input id="autoRender" type="checkbox" checked> 自動轉換</label>
+            <label><input id="togglePageDnD" type="checkbox" checked> 全頁拖放</label>
+            <button id="renderBtn" class="btn">轉換並預覽</button>
+            <button id="clearBtn" class="btn">清空</button>
+        </div>
+        <div class="io">
+            <div id="pasteBox">
+                <div class="code-insert-controls">
+                    <select id="languageSelect">
+                        <option value="php">PHP</option>
+                        <option value="sql">MySQL / SQL</option>
+                        <option value="ts">TypeScript</option>
+                        <option value="js">JavaScript</option>
+                        <option value="css">CSS</option>
+                        <option value="json">JSON</option>
+                        <option value="yaml">YAML</option>
+                        <option value="yml">YML</option>
+                        <option value="mermaid">Mermaid</option>
+                        <option value="text">Text</option>
+                    </select>
+                    <button id="insertCodeBtn" class="btn">插入</button>
+                </div>
+                <textarea id="mdInput" placeholder="在此貼上 Markdown 文字，或切換到『讀本地檔』以載入 .md 檔案"></textarea>
+            </div>
+            <div id="fileBox" class="hidden">
+                <local-file-reader id="fileComp" accept=".md,.markdown,.txt,.mmd,.mermaid,text/markdown,text/plain" drop-label="拖曳 .md 到這裡，或點選以選擇檔案"></local-file-reader>
+            </div>
+            <div class="status" id="status">就緒</div>
+        </div>
+    </div>
+    <div class="right">
+        <div id="preview" class="preview"></div>
+    </div>
+</div>
+<div id="pageDrop" class="page-drop hidden">在任何地方放開以載入檔案</div>
+
+<script>
+    // Web Component: local-file-reader
+    class LocalFileReader extends HTMLElement {
+        static get observedAttributes() { return ['accept', 'drop-label']; }
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = `
+            <style>
+              :host { display: block; }
+              .box { display: grid; gap: 10px; }
+              .file { background: transparent; color: inherit; }
+              .dropzone {
+                border: 1px dashed #212837;
+                border-radius: 8px;
+                padding: 16px;
+                background: #10141b;
+                color: #9aa4b2;
+                text-align: center;
+                user-select: none;
+                cursor: pointer;
+              }
+              .dropzone.dragover { border-color: #6aa6ff; background: #0f1520; color: #e7eaf0; }
+            </style>
+            <div class="box">
+              <input class="file" id="file" type="file" />
+              <div class="dropzone" id="drop"></div>
+            </div>
+          `;
+        }
+        connectedCallback() {
+            this._file = this.shadowRoot.getElementById('file');
+            this._drop = this.shadowRoot.getElementById('drop');
+            this._applyAttrs();
+            // clicking dropzone opens file dialog
+            this._drop.addEventListener('click', () => this._file.click());
+            // file chooser
+            this._file.addEventListener('change', async (e) => {
+                const f = e.target.files && e.target.files[0];
+                if (f) await this._loadFile(f);
+            });
+            // drag and drop
+            ['dragenter','dragover'].forEach(evt => this._drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); this._drop.classList.add('dragover'); }));
+            ['dragleave','drop'].forEach(evt => this._drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); this._drop.classList.remove('dragover'); }));
+            this._drop.addEventListener('drop', async (e) => {
+                const dt = e.dataTransfer; const f = dt && dt.files && dt.files[0];
+                if (f) await this._loadFile(f);
+            });
+        }
+        attributeChangedCallback() { this._applyAttrs(); }
+        _applyAttrs() {
+            if (!this.shadowRoot) return;
+            const accept = this.getAttribute('accept') || '';
+            const label = this.getAttribute('drop-label') || '拖曳檔案到此，或點選選擇檔案';
+            if (this._file) this._file.setAttribute('accept', accept);
+            if (this._drop) this._drop.textContent = label;
+        }
+        async _loadFile(file) {
+            try {
+                const text = await file.text();
+                this.dispatchEvent(new CustomEvent('file-load', { detail: { file, name: file.name, text }, bubbles: true }));
+            } catch (err) {
+                this.dispatchEvent(new CustomEvent('file-error', { detail: err, bubbles: true }));
+            }
+        }
+        clear() { if (this._file) this._file.value = ''; }
+    }
+    customElements.define('local-file-reader', LocalFileReader);
+
+    // Configure libraries
+    mermaid.initialize({ startOnLoad: false, theme: "dark" });
+    marked.setOptions({ gfm: true, breaks: true });
+
+    const el = {
+        input: document.getElementById('mdInput'),
+        renderBtn: document.getElementById('renderBtn'),
+        clearBtn: document.getElementById('clearBtn'),
+        preview: document.getElementById('preview'),
+        status: document.getElementById('status'),
+        auto: document.getElementById('autoRender'),
+        togglePageDnD: document.getElementById('togglePageDnD'),
+        fileComp: document.getElementById('fileComp'),
+        pasteBox: document.getElementById('pasteBox'),
+        fileBox: document.getElementById('fileBox'),
+        pageDrop: document.getElementById('pageDrop'),
+        languageSelect: document.getElementById('languageSelect'),
+        insertCodeBtn: document.getElementById('insertCodeBtn')
+    };
+
+    // Mode switch: paste or file
+    document.querySelectorAll('input[name="mode"]').forEach(r => {
+        r.addEventListener('change', updateModeUI);
+    });
+
+    function getMode() {
+        const r = document.querySelector('input[name="mode"]:checked');
+        return r ? r.value : 'paste';
+    }
+
+    function setMode(mode) {
+        const r = document.querySelector(`input[name="mode"][value="${mode}"]`);
+        if (r) { r.checked = true; updateModeUI(); }
+    }
+
+    function updateModeUI() {
+        const mode = getMode();
+        const paste = mode === 'paste';
+        el.pasteBox.classList.toggle('hidden', !paste);
+        el.fileBox.classList.toggle('hidden', paste);
+        setStatus(paste ? '貼上 Markdown 或輸入文字' : '選擇或拖曳本地 .md 檔');
+    }
+
+    function setStatus(msg, tone = 'muted') {
+        el.status.textContent = msg;
+        el.status.style.color = tone === 'error' ? '#e74c3c' : tone === 'ok' ? '#2ecc71' : '#9aa4b2';
+    }
+
+    function escapeHtml(s) {
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    // Custom renderer: turn ```mermaid blocks into <div class="mermaid">...</div>
+    // and enhance regular code blocks with header and copy button
+    const baseRenderer = new marked.Renderer();
+    const renderer = new marked.Renderer();
+
+    renderer.code = function(code, infostring, escaped) {
+        const lang = (infostring || '').trim().toLowerCase();
+
+        if (lang === 'mermaid') {
+            return `<div class="mermaid">${escapeHtml(code)}</div>`;
+        }
+
+        // For regular code blocks, create a wrapper with header and copy button
+        const langName = lang || 'text';
+        const escapedCode = escapeHtml(code);
+
+        return `
+          <pre class="code-block-wrapper">
+            <div class="code-header">
+              <span class="language-name">${langName}</span>
+              <button class="copy-btn" data-clipboard-text="${escapedCode.replace(/"/g, '&quot;')}">複製</button>
+            </div>
+            <code class="language-${lang}">${escapedCode}</code>
+          </pre>
+        `;
+    };
+
+    // Function to handle copy button clicks
+    function setupCopyButtons() {
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const code = this.getAttribute('data-clipboard-text');
+                const originalText = this.textContent;
+
+                try {
+                    // Create a temporary textarea to hold the text for copying
+                    const textarea = document.createElement('textarea');
+                    textarea.value = code.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+
+                    // Update button to show success
+                    this.textContent = '已複製';
+                    this.classList.add('copied');
+
+                    // Revert button after a short delay
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                    this.textContent = '失敗';
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                    }, 2000);
+                }
+            });
+        });
+    }
+
+    async function render(content) {
+        try {
+            const html = marked.parse(content || '', { renderer });
+            const clean = DOMPurify.sanitize(html);
+            el.preview.innerHTML = clean;
+
+            // Setup copy buttons for code blocks
+            setupCopyButtons();
+
+            // Render Mermaid diagrams found in the preview
+            const targets = el.preview.querySelectorAll('.mermaid');
+            if (targets.length) {
+                mermaid.init(undefined, targets);
+            }
+            setStatus(`完成：${Math.max(1, (content || '').length)} 字`, 'ok');
+        } catch (err) {
+            console.error(err);
+            setStatus('轉換失敗：' + (err && err.message ? err.message : err), 'error');
+        }
+    }
+
+    function maybeAutoRender() {
+        if (el.auto.checked) render(el.input.value);
+    }
+
+    // Events: paste/typing
+    el.input.addEventListener('input', maybeAutoRender);
+    el.renderBtn.addEventListener('click', () => render(el.input.value));
+    el.clearBtn.addEventListener('click', () => {
+        el.input.value = '';
+        el.preview.innerHTML = '';
+        setStatus('已清空');
+    });
+
+    // File component events
+    el.fileComp.addEventListener('file-load', (e) => {
+        const { name, text } = e.detail;
+        handleLoadedFile(name, text);
+    });
+    el.fileComp.addEventListener('file-error', (e) => {
+        setStatus('讀取失敗：' + (e.detail?.message || e.detail || '未知錯誤'), 'error');
+    });
+
+    function handleLoadedFile(name, text) {
+        if (!/\.(md|markdown|mmd|txt)$/i.test(name)) {
+            setStatus(`已載入 ${name}（非 .md 亦可嘗試）`);
+        }
+        el.input.value = text || '';
+        setStatus(`載入：${name}（${(text || '').length} 字）`);
+        maybeAutoRender();
+    }
+
+    async function loadFileObject(file) {
+        const text = await file.text();
+        handleLoadedFile(file.name, text);
+    }
+
+    // Global drag & drop (whole page)
+    let dragDepth = 0;
+    let pageDnDEnabled = true;
+    function showPageDrop() { el.pageDrop.classList.remove('hidden'); }
+    function hidePageDrop() { el.pageDrop.classList.add('hidden'); }
+    function hasFiles(e) {
+        try { return e && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'); }
+        catch { return false; }
+    }
+
+    // Toggle global drag & drop
+    el.togglePageDnD.addEventListener('change', () => {
+        pageDnDEnabled = !!el.togglePageDnDEnabled.checked;
+        if (!pageDnDEnabled) hidePageDrop();
+    });
+
+    // Always suppress browser navigation on file drops
+    document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); }, false);
+    document.addEventListener('drop', (e) => { if (hasFiles(e)) e.preventDefault(); }, false);
+
+    window.addEventListener('dragenter', (e) => {
+        if (!hasFiles(e)) return;
+        // prevent browser from treating this as navigable drag
+        e.preventDefault();
+        if (pageDnDEnabled) {
+            dragDepth++;
+            showPageDrop();
+        }
+    });
+    window.addEventListener('dragover', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        if (pageDnDEnabled) showPageDrop();
+    });
+    window.addEventListener('dragleave', (e) => {
+        if (!hasFiles(e)) return;
+        if (pageDnDEnabled) {
+            dragDepth = Math.max(0, dragDepth - 1);
+            if (dragDepth === 0) hidePageDrop();
+        }
+    });
+    window.addEventListener('drop', async (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth = 0;
+        hidePageDrop();
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length) {
+            if (pageDnDEnabled) {
+                setMode('file');
+                await loadFileObject(files[0]);
+            } else {
+                setStatus('全頁拖放已關閉（未載入檔案）');
+            }
+        }
+    });
+
+    // Code insert functionality
+    function insertCodeBlock() {
+        const language = el.languageSelect.value;
+        const languageLabel = el.languageSelect.options[el.languageSelect.selectedIndex].text;
+
+        // Get the current cursor position and selection
+        const start = el.input.selectionStart;
+        const end = el.input.selectionEnd;
+        const selectedText = el.input.value.substring(start, end);
+
+        // Define example content for each language
+        const examples = {
+            php: "<?php\n// Your PHP code here\n?>",
+            sql: "SELECT 1;",
+            ts: "let count: number = 0;",
+            js: "for (let i = 0; i < 3; i++) {\n  console.log(i);\n}",
+            css: "body {\n  color: black;\n}",
+            json: "{\n  \"key\": \"value\"\n}",
+            yaml: "key: value",
+            yml: "key: value",
+            mermaid: "flowchart TD\n  A[Start] --> B[Next]",
+            text: "Your text here"
+        };
+
+        // Determine the content to insert
+        const contentToInsert = selectedText || examples[language];
+
+        // Create the code block
+        let codeBlock;
+        if (language === 'text') {
+            codeBlock = "```\n" + contentToInsert + "\n```";
+        } else {
+            codeBlock = "```" + language + "\n" + contentToInsert + "\n```";
+        }
+
+        // Insert the code block at the cursor position
+        const newText = el.input.value.substring(0, start) + codeBlock + el.input.value.substring(end);
+        el.input.value = newText;
+
+        // Set the cursor position after the inserted code block
+        const newPosition = start + codeBlock.length;
+        el.input.setSelectionRange(newPosition, newPosition);
+        el.input.focus();
+
+        // Trigger input event for auto-render
+        el.input.dispatchEvent(new Event('input'));
+    }
+
+    // Add event listener to the insert button
+    el.insertCodeBtn.addEventListener('click', insertCodeBlock);
+
+    // Starter sample
+    document.addEventListener('DOMContentLoaded', () => {
+        const sample = `# 範例 Markdown
+
+這是一個有代碼區塊的範例：
+
+\`\`\`javascript
+function hello() {
+  console.log("Hello, world!");
+  return true;
+}
+\`\`\`
+
+\`\`\`python
+def greet(name):
+    print(f"Hello, {name}!")
+    return True
+\`\`\`
+
+\`\`\`mermaid
+flowchart TD
+  A[開始] --> B{條件?}
+  B -- 是 --> C[處理 1]
+  B -- 否 --> D[處理 2]
+  C --> E[結束]
+  D --> E[結束]
+\`\`\`
+
+> 小提示：切換「讀本地檔」可拖曳 .md 進來。`;
+        el.input.value = sample;
+        render(sample);
+    });
+</script>
+</body>
+</html>

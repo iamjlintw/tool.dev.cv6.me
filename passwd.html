@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密碼產生器</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3 text-center">
+            <h1>密碼產生器</h1>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-6 offset-md-3">
+            <input type="number" id="length" class="form-control" placeholder="密碼長度 (1-64)" min="1" max="64">
+            <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" value="" id="specialChars">
+                <label class="form-check-label" for="specialChars">
+                    包含特殊字符
+                </label>
+            </div>
+            <button class="btn btn-primary mt-2" onclick="generatePassword()">產生密碼</button>
+            <textarea id="passwordOutput" class="form-control mt-2" readonly></textarea>
+            <button class="btn btn-secondary mt-2" onclick="copyPassword()">複製密碼</button>
+            <div id="strengthBox" class="mt-2 p-2"></div>
+        </div>
+    </div>
+</div>
+
+<script src="passwordGenerator.js"></script>
+</body>
+</html>

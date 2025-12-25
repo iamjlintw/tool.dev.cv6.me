@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter</title>
+    <!-- 引入Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h2>JSON Formatter</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="inputJSON">輸入JSON:</label>
+                        <textarea id="inputJSON" class="form-control" rows="10" placeholder="輸入你的JSON字符串..."></textarea>
+                    </div>
+                    <button id="formatBtn" class="btn btn-primary btn-block mb-2">格式化</button>
+                    <button id="minifyBtn" class="btn btn-warning btn-block mb-4">最小化JSON</button>
+                    <div class="form-group">
+                        <label for="outputJSON">輸出JSON:</label>
+                        <textarea id="outputJSON" class="form-control" rows="10" readonly></textarea>
+                    </div>
+                    <button id="copyBtn" class="btn btn-secondary btn-block">複製輸出結果</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 引入Bootstrap JS和jQuery -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+    $('#formatBtn').click(function() {
+        try {
+            let inputJSON = $('#inputJSON').val();
+            let parsedJSON = JSON.parse(inputJSON);
+            let formattedJSON = JSON.stringify(parsedJSON, null, 4);
+            $('#outputJSON').val(formattedJSON);
+        } catch (error) {
+            alert('輸入的JSON格式不正確！');
+        }
+    });
+
+    $('#minifyBtn').click(function() {
+        try {
+            let inputJSON = $('#inputJSON').val();
+            let parsedJSON = JSON.parse(inputJSON);
+            let minifiedJSON = JSON.stringify(parsedJSON);
+            $('#outputJSON').val(minifiedJSON);
+        } catch (error) {
+            alert('輸入的JSON格式不正確！');
+        }
+    });
+
+    $('#copyBtn').click(function() {
+        let output = document.getElementById("outputJSON");
+        output.select();
+        document.execCommand("copy");
+        alert("輸出結果已複製到剪貼簿！");
+    });
+</script>
+
+</body>
+</html>

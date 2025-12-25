@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mermaid 讀取器</title>
+    <meta name="description" content="本地端純前端 Mermaid 圖表讀取器" />
+    <style>
+        :root {
+            --bg: #0b0c0f;
+            --panel: #151922;
+            --panel-2: #10141b;
+            --text: #e7eaf0;
+            --muted: #9aa4b2;
+            --accent: #6aa6ff;
+            --border: #212837;
+            --success: #2ecc71;
+            --warn: #f39c12;
+            --error: #e74c3c;
+            --code-bg: #0f1520;
+            --code-border: #2a3042;
+            --code-header-bg: #1a1f2d;
+            --code-header-text: #a0a8b7;
+            --copy-btn-bg: #2a3042;
+            --copy-btn-hover-bg: #343a4d;
+            --copy-btn-success: #2ecc71;
+        }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Ubuntu, Cantarell, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        }
+        header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #0e1117, #0b0c0f);
+        }
+        header h1 { font-size: 16px; margin: 0; }
+        header .sub { color: var(--muted); font-size: 12px; }
+
+        .wrap { height: calc(100% - 57px); display: grid; grid-template-columns: 420px 1fr; gap: 0; }
+        .left, .right { height: 100%; overflow: auto; }
+        .left { background: var(--panel); border-right: 1px solid var(--border); }
+        .right { background: #0c0f14; }
+
+        .controls { padding: 12px 12px 0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .controls label { color: var(--muted); }
+        .controls .spacer { flex: 1; }
+
+        .btn {
+            background: var(--panel-2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn:hover { border-color: var(--accent); }
+
+        .io {
+            padding: 12px;
+            display: grid;
+            gap: 12px;
+        }
+        textarea {
+            width: 100%;
+            height: calc(100vh - 240px);
+            min-height: 200px;
+            resize: vertical;
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+        .dropzone {
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            background: var(--panel-2);
+            color: var(--muted);
+            text-align: center;
+        }
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: #0f1520;
+            color: var(--text);
+        }
+
+        .preview {
+            padding: 24px 28px;
+            max-width: 1200px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .preview .mermaid {
+            background: var(--code-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--code-border);
+        }
+
+        .status { color: var(--muted); padding: 0 12px 12px; font-size: 12px; }
+
+        .hidden { display: none !important; }
+
+        /* Global page drop overlay */
+        .page-drop {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 24, 32, 0.8);
+            color: var(--text);
+            display: grid;
+            place-items: center;
+            z-index: 9999;
+            border: 2px dashed var(--accent);
+            pointer-events: none;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* Template controls */
+        .template-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .template-controls select,
+        .template-controls button {
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .template-controls button {
+            cursor: pointer;
+        }
+
+        .template-controls button:hover {
+            border-color: var(--accent);
+        }
+
+        @media (max-width: 960px) {
+            .wrap { grid-template-columns: 1fr; }
+            .right { border-top: 1px solid var(--border); }
+        }
+    </style>
+    <!-- Mermaid library -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@9.4.3/dist/mermaid.min.js" integrity="sha256-e0o3JYsdjqKajf9eOe22FhioYSz9WofRY4dLKo3F6do=" crossorigin="anonymous"></script>
+</head>
+<body>
+<header>
+    <h1>Mermaid 讀取器 <span class="sub">(純前端、支援貼上與本地檔)</span></h1>
+</header>
+<div class="wrap">
+    <div class="left">
+        <div class="controls">
+            <label><input type="radio" name="mode" value="paste" checked> 貼內容</label>
+            <label><input type="radio" name="mode" value="file"> 讀本地檔</label>
+            <span class="spacer"></span>
+            <label><input id="autoRender" type="checkbox" checked> 自動轉換</label>
+            <label><input id="togglePageDnD" type="checkbox" checked> 全頁拖放</label>
+            <button id="renderBtn" class="btn">轉換並預覽</button>
+            <button id="downloadBtn" class="btn" style="display: none;">下載圖片</button>
+            <button id="clearBtn" class="btn">清空</button>
+        </div>
+        <div class="io">
+            <div id="pasteBox">
+                <div class="template-controls">
+                    <select id="templateSelect">
+                        <option value="flowchart">流程圖 (Flowchart)</option>
+                        <option value="sequence">時序圖 (Sequence)</option>
+                        <option value="class">類別圖 (Class)</option>
+                        <option value="state">狀態圖 (State)</option>
+                        <option value="er">實體關係圖 (ER)</option>
+                        <option value="gantt">甘特圖 (Gantt)</option>
+                        <option value="pie">圓餅圖 (Pie)</option>
+                        <option value="gitgraph">Git 圖 (GitGraph)</option>
+                        <option value="journey">使用者旅程 (Journey)</option>
+                        <option value="custom">自訂</option>
+                    </select>
+                    <button id="insertTemplateBtn" class="btn">插入範本</button>
+                </div>
+                <textarea id="mermaidInput" placeholder="在此貼上 Mermaid 代碼，或切換到『讀本地檔』以載入 .mmd 檔案"></textarea>
+            </div>
+            <div id="fileBox" class="hidden">
+                <local-file-reader id="fileComp" accept=".mmd,.mermaid,.txt,text/plain" drop-label="拖曳 .mmd 到這裡，或點選以選擇檔案"></local-file-reader>
+            </div>
+            <div class="status" id="status">就緒</div>
+        </div>
+    </div>
+    <div class="right">
+        <div id="preview" class="preview"></div>
+    </div>
+</div>
+<div id="pageDrop" class="page-drop hidden">在任何地方放開以載入檔案</div>
+
+<script>
+    // Web Component: local-file-reader
+    class LocalFileReader extends HTMLElement {
+        static get observedAttributes() { return ['accept', 'drop-label']; }
+        constructor() {
+            super();
+            this.attachShadow({ mode: 'open' });
+            this.shadowRoot.innerHTML = `
+            <style>
+              :host { display: block; }
+              .box { display: grid; gap: 10px; }
+              .file { background: transparent; color: inherit; }
+              .dropzone {
+                border: 1px dashed #212837;
+                border-radius: 8px;
+                padding: 16px;
+                background: #10141b;
+                color: #9aa4b2;
+                text-align: center;
+                user-select: none;
+                cursor: pointer;
+              }
+              .dropzone.dragover { border-color: #6aa6ff; background: #0f1520; color: #e7eaf0; }
+            </style>
+            <div class="box">
+              <input class="file" id="file" type="file" />
+              <div class="dropzone" id="drop"></div>
+            </div>
+          `;
+        }
+        connectedCallback() {
+            this._file = this.shadowRoot.getElementById('file');
+            this._drop = this.shadowRoot.getElementById('drop');
+            this._applyAttrs();
+            // clicking dropzone opens file dialog
+            this._drop.addEventListener('click', () => this._file.click());
+            // file chooser
+            this._file.addEventListener('change', async (e) => {
+                const f = e.target.files && e.target.files[0];
+                if (f) await this._loadFile(f);
+            });
+            // drag and drop
+            ['dragenter','dragover'].forEach(evt => this._drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); this._drop.classList.add('dragover'); }));
+            ['dragleave','drop'].forEach(evt => this._drop.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); this._drop.classList.remove('dragover'); }));
+            this._drop.addEventListener('drop', async (e) => {
+                const dt = e.dataTransfer; const f = dt && dt.files && dt.files[0];
+                if (f) await this._loadFile(f);
+            });
+        }
+        attributeChangedCallback() { this._applyAttrs(); }
+        _applyAttrs() {
+            if (!this.shadowRoot) return;
+            const accept = this.getAttribute('accept') || '';
+            const label = this.getAttribute('drop-label') || '拖曳檔案到此，或點選選擇檔案';
+            if (this._file) this._file.setAttribute('accept', accept);
+            if (this._drop) this._drop.textContent = label;
+        }
+        async _loadFile(file) {
+            try {
+                const text = await file.text();
+                this.dispatchEvent(new CustomEvent('file-load', { detail: { file, name: file.name, text }, bubbles: true }));
+            } catch (err) {
+                this.dispatchEvent(new CustomEvent('file-error', { detail: err, bubbles: true }));
+            }
+        }
+        clear() { if (this._file) this._file.value = ''; }
+    }
+    customElements.define('local-file-reader', LocalFileReader);
+
+    // Wait for Mermaid to load and configure
+    let mermaidReady = false;
+    
+    function initMermaid() {
+        if (typeof mermaid === 'undefined' || typeof mermaid.initialize === 'undefined') {
+            setTimeout(initMermaid, 50);
+            return;
+        }
+        try {
+            mermaid.initialize({ 
+                startOnLoad: false, 
+                theme: "dark",
+                securityLevel: 'loose',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: true
+                }
+            });
+            mermaidReady = true;
+        } catch (err) {
+            console.error('Mermaid initialization error:', err);
+            setTimeout(initMermaid, 100);
+        }
+    }
+    
+    // Start initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMermaid);
+    } else {
+        initMermaid();
+    }
+
+    const el = {
+        input: document.getElementById('mermaidInput'),
+        renderBtn: document.getElementById('renderBtn'),
+        downloadBtn: document.getElementById('downloadBtn'),
+        clearBtn: document.getElementById('clearBtn'),
+        preview: document.getElementById('preview'),
+        status: document.getElementById('status'),
+        auto: document.getElementById('autoRender'),
+        togglePageDnD: document.getElementById('togglePageDnD'),
+        fileComp: document.getElementById('fileComp'),
+        pasteBox: document.getElementById('pasteBox'),
+        fileBox: document.getElementById('fileBox'),
+        pageDrop: document.getElementById('pageDrop'),
+        templateSelect: document.getElementById('templateSelect'),
+        insertTemplateBtn: document.getElementById('insertTemplateBtn')
+    };
+
+    // Mode switch: paste or file
+    document.querySelectorAll('input[name="mode"]').forEach(r => {
+        r.addEventListener('change', updateModeUI);
+    });
+
+    function getMode() {
+        const r = document.querySelector('input[name="mode"]:checked');
+        return r ? r.value : 'paste';
+    }
+
+    function setMode(mode) {
+        const r = document.querySelector(`input[name="mode"][value="${mode}"]`);
+        if (r) { r.checked = true; updateModeUI(); }
+    }
+
+    function updateModeUI() {
+        const mode = getMode();
+        const paste = mode === 'paste';
+        el.pasteBox.classList.toggle('hidden', !paste);
+        el.fileBox.classList.toggle('hidden', paste);
+        setStatus(paste ? '貼上 Mermaid 代碼或輸入文字' : '選擇或拖曳本地 .mmd 檔');
+    }
+
+    function setStatus(msg, tone = 'muted') {
+        el.status.textContent = msg;
+        const colors = {
+            error: 'var(--error)',
+            ok: 'var(--success)',
+            warn: 'var(--warn)',
+            processing: 'var(--accent)',
+            muted: 'var(--muted)'
+        };
+        el.status.style.color = colors[tone] || colors.muted;
+    }
+
+    // Mermaid templates
+    const templates = {
+        flowchart: `flowchart TD
+    A[開始] --> B{條件判斷}
+    B -->|是| C[處理 1]
+    B -->|否| D[處理 2]
+    C --> E[結束]
+    D --> E`,
+        sequence: `sequenceDiagram
+    participant A as "使用者"
+    participant B as "系統"
+    A->>B: 發送請求
+    B-->>A: 返回回應`,
+        class: `classDiagram
+    class Animal {
+        +String name
+        +int age
+        +eat()
+        +sleep()
+    }
+    class Dog {
+        +bark()
+    }
+    Animal <|-- Dog`,
+        state: `stateDiagram-v2
+    [*] --> 狀態1
+    狀態1 --> 狀態2: 事件1
+    狀態2 --> 狀態3: 事件2
+    狀態3 --> [*]`,
+        er: `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER {
+        string name
+        string email
+    }
+    ORDER {
+        int orderNumber
+        date orderDate
+    }`,
+        gantt: `gantt
+    title 專案時程
+    dateFormat YYYY-MM-DD
+    section 階段1
+    任務1 :a1, 2024-01-01, 30d
+    任務2 :a2, after a1, 20d
+    section 階段2
+    任務3 :a3, 2024-02-01, 30d`,
+        pie: `pie title 資料分布
+    "類別 A" : 42.1
+    "類別 B" : 30.2
+    "類別 C" : 27.7`,
+        gitgraph: `gitgraph
+    commit id: "初始提交"
+    branch develop
+    checkout develop
+    commit id: "開發功能"
+    checkout main
+    merge develop
+    commit id: "發布"`,
+        journey: `journey
+    title 使用者旅程
+    section 發現階段
+      瀏覽網站: 5: 使用者
+      搜尋產品: 4: 使用者
+    section 購買階段
+      加入購物車: 5: 使用者
+      完成結帳: 5: 使用者`,
+        custom: ''
+    };
+
+    async function render(content) {
+        try {
+            // Wait for Mermaid to be ready
+            if (!mermaidReady) {
+                let waitCount = 0;
+                while (!mermaidReady && waitCount < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waitCount++;
+                }
+                if (!mermaidReady) {
+                    throw new Error('Mermaid 庫載入超時');
+                }
+            }
+
+            if (!content || !content.trim()) {
+                el.preview.innerHTML = '';
+                setStatus('請輸入 Mermaid 代碼');
+                return;
+            }
+
+            // Clear previous content
+            el.preview.innerHTML = '';
+            
+            // Create a container for the mermaid diagram
+            const container = document.createElement('div');
+            container.className = 'mermaid';
+            container.textContent = content.trim();
+            el.preview.appendChild(container);
+
+            // Render the Mermaid diagram - same method as md.html
+            const targets = el.preview.querySelectorAll('.mermaid');
+            if (targets.length > 0) {
+                await mermaid.init(undefined, targets);
+                // Show download button after rendering
+                el.downloadBtn.style.display = 'inline-block';
+            }
+            
+            setStatus(`完成：${content.length} 字`, 'ok');
+        } catch (err) {
+            console.error(err);
+            el.preview.innerHTML = `<div style="color: var(--error); padding: 20px;">錯誤：${err.message || err}</div>`;
+            setStatus('轉換失敗：' + (err && err.message ? err.message : err), 'error');
+        }
+    }
+
+    function maybeAutoRender() {
+        if (el.auto.checked) render(el.input.value);
+    }
+
+    // Events: paste/typing
+    el.input.addEventListener('input', maybeAutoRender);
+    el.renderBtn.addEventListener('click', () => render(el.input.value));
+    el.clearBtn.addEventListener('click', () => {
+        el.input.value = '';
+        el.preview.innerHTML = '';
+        el.downloadBtn.style.display = 'none';
+        setStatus('已清空');
+    });
+
+    // Download image functionality
+    let downloading = false;
+    function setDownloadBtnState(isDownloading) {
+        el.downloadBtn.disabled = isDownloading;
+        el.downloadBtn.textContent = isDownloading ? '下載中...' : '下載圖片';
+    }
+
+    async function downloadAsImage() {
+        try {
+            // Find the rendered SVG in the preview
+            const svgElement = el.preview.querySelector('svg');
+            if (!svgElement) {
+                setStatus('沒有可下載的圖表', 'error');
+                return;
+            }
+
+            if (downloading) {
+                setStatus('正在下載中，請稍候...', 'processing');
+                return;
+            }
+            downloading = true;
+            setDownloadBtnState(true);
+            setStatus('正在產生 PNG 圖片...', 'processing');
+
+            // helper: trigger download from url
+            const triggerDownload = (url, filename) => {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // Fallback: direct download SVG if PNG失敗
+            const downloadSvgFallback = (svgData) => {
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                triggerDownload(url, `mermaid-diagram-${Date.now()}.svg`);
+                URL.revokeObjectURL(url);
+            };
+
+            try {
+                // Clone the SVG to avoid mutating the original
+                const clonedSvg = svgElement.cloneNode(true);
+
+                // Normalize dimensions from viewBox or attributes
+                const viewBox = clonedSvg.getAttribute('viewBox');
+                let width;
+                let height;
+                if (viewBox) {
+                    const parts = viewBox.split(/\s+/);
+                    width = parseFloat(parts[2]) || svgElement.getBoundingClientRect().width || 800;
+                    height = parseFloat(parts[3]) || svgElement.getBoundingClientRect().height || 600;
+                } else {
+                    width = parseFloat(clonedSvg.getAttribute('width')) || svgElement.getBoundingClientRect().width || 800;
+                    height = parseFloat(clonedSvg.getAttribute('height')) || svgElement.getBoundingClientRect().height || 600;
+                }
+                if (width < 10) width = 800;
+                if (height < 10) height = 600;
+
+                // Explicitly set width/height and namespace to avoid invalid data URI
+                clonedSvg.setAttribute('width', width);
+                clonedSvg.setAttribute('height', height);
+                clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+                // Serialize SVG
+                const svgData = new XMLSerializer().serializeToString(clonedSvg);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
+
+                // Draw on canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = width * 2;  // scale for better quality
+                canvas.height = height * 2;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#0f1520'; // dark background to match preview
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+
+                await new Promise((resolve, reject) => {
+                    img.onload = () => {
+                        try {
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            URL.revokeObjectURL(svgUrl);
+                            resolve();
+                        } catch (e) {
+                            reject(e);
+                        }
+                    };
+                    img.onerror = () => {
+                        URL.revokeObjectURL(svgUrl);
+                        reject(new Error('無法載入 SVG 影像'));
+                    };
+                    img.src = svgUrl;
+                });
+
+                // Export PNG with robust fallback
+                const filename = `mermaid-diagram-${Date.now()}.png`;
+                let pngBlob = null;
+                if (canvas.toBlob) {
+                    pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                }
+
+                if (!pngBlob) {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    triggerDownload(dataUrl, filename);
+                    setStatus('PNG 圖片下載成功（DataURL）', 'ok');
+                } else {
+                    const downloadUrl = URL.createObjectURL(pngBlob);
+                    triggerDownload(downloadUrl, filename);
+                    URL.revokeObjectURL(downloadUrl);
+                    setStatus('PNG 圖片下載成功', 'ok');
+                }
+            } catch (err) {
+                console.error('Download error:', err);
+                // Fallback: download SVG directly
+                setStatus('PNG 生成失敗，改為下載 SVG', 'warn');
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                downloadSvgFallback(svgData);
+            }
+        } catch (err) {
+            console.error('Download error:', err);
+            setStatus('下載失敗：' + (err.message || err), 'error');
+        } finally {
+            downloading = false;
+            setDownloadBtnState(false);
+        }
+    }
+
+    el.downloadBtn.addEventListener('click', downloadAsImage);
+
+    // File component events
+    el.fileComp.addEventListener('file-load', (e) => {
+        const { name, text } = e.detail;
+        handleLoadedFile(name, text);
+    });
+    el.fileComp.addEventListener('file-error', (e) => {
+        setStatus('讀取失敗：' + (e.detail?.message || e.detail || '未知錯誤'), 'error');
+    });
+
+    function handleLoadedFile(name, text) {
+        if (!/\.(mmd|mermaid|txt)$/i.test(name)) {
+            setStatus(`已載入 ${name}（非 .mmd 亦可嘗試）`);
+        }
+        el.input.value = text || '';
+        setStatus(`載入：${name}（${(text || '').length} 字）`);
+        maybeAutoRender();
+    }
+
+    async function loadFileObject(file) {
+        const text = await file.text();
+        handleLoadedFile(file.name, text);
+    }
+
+    // Global drag & drop (whole page)
+    let dragDepth = 0;
+    let pageDnDEnabled = true;
+    function showPageDrop() { el.pageDrop.classList.remove('hidden'); }
+    function hidePageDrop() { el.pageDrop.classList.add('hidden'); }
+    function hasFiles(e) {
+        try { return e && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes('Files'); }
+        catch { return false; }
+    }
+
+    // Toggle global drag & drop
+    el.togglePageDnD.addEventListener('change', () => {
+        pageDnDEnabled = !!el.togglePageDnD.checked;
+        if (!pageDnDEnabled) hidePageDrop();
+    });
+
+    // Always suppress browser navigation on file drops
+    document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); }, false);
+    document.addEventListener('drop', (e) => { if (hasFiles(e)) e.preventDefault(); }, false);
+
+    window.addEventListener('dragenter', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        if (pageDnDEnabled) {
+            dragDepth++;
+            showPageDrop();
+        }
+    });
+    window.addEventListener('dragover', (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        if (pageDnDEnabled) showPageDrop();
+    });
+    window.addEventListener('dragleave', (e) => {
+        if (!hasFiles(e)) return;
+        if (pageDnDEnabled) {
+            dragDepth = Math.max(0, dragDepth - 1);
+            if (dragDepth === 0) hidePageDrop();
+        }
+    });
+    window.addEventListener('drop', async (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth = 0;
+        hidePageDrop();
+        const files = e.dataTransfer && e.dataTransfer.files;
+        if (files && files.length) {
+            if (pageDnDEnabled) {
+                setMode('file');
+                await loadFileObject(files[0]);
+            } else {
+                setStatus('全頁拖放已關閉（未載入檔案）');
+            }
+        }
+    });
+
+    // Template insert functionality
+    function insertTemplate() {
+        const templateType = el.templateSelect.value;
+        const template = templates[templateType];
+
+        if (templateType === 'custom' || !template) {
+            // For custom, just insert a basic structure
+            const basicTemplate = `flowchart TD
+    A[開始] --> B[結束]`;
+            insertAtCursor(basicTemplate);
+            return;
+        }
+
+        insertAtCursor(template);
+    }
+
+    function insertAtCursor(text) {
+        const start = el.input.selectionStart;
+        const end = el.input.selectionEnd;
+        const selectedText = el.input.value.substring(start, end);
+        
+        // If there's selected text, replace it; otherwise insert at cursor
+        const newText = el.input.value.substring(0, start) + text + el.input.value.substring(end);
+        el.input.value = newText;
+
+        // Set cursor position after inserted text
+        const newPosition = start + text.length;
+        el.input.setSelectionRange(newPosition, newPosition);
+        el.input.focus();
+
+        // Trigger input event for auto-render
+        el.input.dispatchEvent(new Event('input'));
+    }
+
+    // Add event listener to the insert template button
+    el.insertTemplateBtn.addEventListener('click', insertTemplate);
+
+    // Starter sample
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait a bit for everything to initialize
+        setTimeout(() => {
+            const sample = templates.flowchart;
+            el.input.value = sample;
+            render(sample);
+        }, 200);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>六爻起卦系統</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #007bff;
+        }
+
+        .progress-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-detail {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .question-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .question-section h3 {
+            color: #17a2b8;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .question-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.3s ease;
+        }
+
+        .question-input:focus {
+            outline: none;
+            border-color: #17a2b8;
+            box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
+        }
+
+        .question-placeholder {
+            color: #6c757d;
+            font-style: italic;
+            margin-top: 8px;
+            font-size: 0.9rem;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .question-reset-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .question-reset-btn.show {
+            display: block;
+        }
+
+        .question-reset-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .mode-selection {
+            background: #e3f2fd;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .mode-selection h3 {
+            color: #1976d2;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .mode-options {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .mode-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2196f3;
+        }
+
+        .mode-option label {
+            font-size: 1rem;
+            color: #1976d2;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .mode-description {
+            font-size: 0.9rem;
+            color: #1565c0;
+            font-style: italic;
+            margin-top: 8px;
+        }
+
+        .action-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .mouse-area {
+            background: transparent;
+            border: none;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            min-height: auto;
+            display: none;
+        }
+
+        .scratch-wrapper {
+            position: relative;
+            width: 340px;
+            height: 170px;
+            margin: 0 auto;
+            user-select: none;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+
+        .scratch-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f5f6fa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            border: 1px solid #e9ecef;
+        }
+
+        .scratch-text {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-family: 'KaiTi', '楷体', serif;
+        }
+
+        .scratch-subtext {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            font-family: 'KaiTi', '楷体', serif;
+        }
+
+        canvas#scratchCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            touch-action: none;
+        }
+
+        .scratch-hint {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #666;
+            pointer-events: none;
+            font-weight: 500;
+        }
+
+        .toss-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+            min-height: 60px;
+            min-width: 200px;
+        }
+
+        .toss-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(40, 167, 69, 0.4);
+        }
+
+        .toss-button:active {
+            transform: translateY(0);
+        }
+
+        .toss-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .history-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-section h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .history-log {
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .toss-entry {
+            padding: 5px 0;
+            color: #495057;
+        }
+
+        .yao-separator {
+            border-top: 2px solid #dee2e6;
+            margin: 10px 0;
+        }
+
+        .result-section {
+            background: #e8f5e8;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px solid #28a745;
+            display: none;
+        }
+
+        .result-section h3 {
+            color: #155724;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .hexagram-display {
+            margin-bottom: 25px;
+        }
+
+        .hexagram-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .hexagram-table th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .hexagram-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+
+        .hexagram-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .yao-name {
+            font-weight: bold;
+            color: #495057;
+            min-width: 80px;
+        }
+
+        .yao-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #155724;
+            min-width: 60px;
+        }
+
+        .yao-line {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+            letter-spacing: 2px;
+            min-width: 120px;
+        }
+
+        .changing-line .yao-value {
+            color: #dc3545;
+            background: #fff5f5;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .changing-line .yao-line {
+            color: #dc3545;
+        }
+
+        .changing-note {
+            font-size: 0.85rem;
+            color: #dc3545;
+            font-weight: normal;
+        }
+
+        .hexagram-info {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .hexagram-info div {
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .hexagram-name {
+            font-weight: bold;
+            color: #155724;
+        }
+
+        .output-area {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            user-select: all;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .copy-button,
+        .reset-button {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .copy-button {
+            background: #007bff;
+            color: white;
+        }
+
+        .copy-button:hover {
+            background: #0056b3;
+        }
+
+        .reset-button {
+            background: #dc3545;
+            color: white;
+        }
+
+        .reset-button:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .toss-button {
+                padding: 15px 30px;
+                font-size: 1.1rem;
+                min-width: 180px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .copy-button,
+            .reset-button {
+                min-width: auto;
+            }
+
+            .question-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .question-reset-btn {
+                align-self: center;
+                min-width: 120px;
+            }
+        }
+
+        .current-yao {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 80px;
+        }
+
+        .current-yao h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .current-tosses {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            color: #856404;
+            min-height: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+
+        .current-tosses:empty::before {
+            content: "等待擲銅錢...";
+            color: #a0845c;
+            font-style: italic;
+        }
+
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>六爻起卦系統</h1>
+            <p>一爻三擲，六爻成卦 • 傳統占卜，數位呈現</p>
+        </div>
+
+        <div class="main-content">
+            <div class="question-section">
+                <div class="question-header">
+                    <h3>請輸入您的問題</h3>
+                    <button class="question-reset-btn" id="questionResetBtn">重新起卦</button>
+                </div>
+                <textarea class="question-input" id="questionInput"
+                    placeholder="請輸入您想要占卜的問題，例如：「我是否應該換工作？」「這個投資決定如何？」「感情發展如何？」等..."></textarea>
+                <div class="question-placeholder">問題越具體明確，卦象指引越清晰</div>
+            </div>
+
+            <div class="mode-selection">
+                <h3>擲銅錢模式</h3>
+                <div class="mode-options">
+                    <div class="mode-option">
+                        <input type="radio" id="autoMode" name="tossMode" value="auto" checked>
+                        <label for="autoMode">自動偵測</label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="clickMode" name="tossMode" value="click">
+                        <label for="clickMode">點擊模式</label>
+                    </div>
+                    <div class="mode-option">
+                        <input type="radio" id="mouseMode" name="tossMode" value="mouse">
+                        <label for="mouseMode">刮刮樂模式</label>
+                    </div>
+                </div>
+                <div class="mode-description" id="modeDescription">
+                    自動根據設備類型選擇最佳隨機模式
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-text" id="progressText">準備開始起卦</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-detail" id="progressDetail">輸入問題後點擊「擲銅錢」開始</div>
+            </div>
+
+            <div class="current-yao" id="currentYao" style="display: none;">
+                <h4 id="currentYaoTitle">第一爻</h4>
+                <div class="current-tosses" id="currentTosses"></div>
+            </div>
+
+            <div class="action-section">
+                <button class="toss-button" id="tossButton">擲銅錢</button>
+
+                <div class="mouse-area" id="mouseArea">
+                    <div class="scratch-wrapper" id="scratchWrapper">
+                        <div class="scratch-bg" id="scratchBg">
+                            <div class="scratch-text" id="scratchBgText">第 1 爻</div>
+                            <div class="scratch-subtext" id="scratchBgSubText">第 1 擲</div>
+                        </div>
+                        <canvas id="scratchCanvas"></canvas>
+                    </div>
+                    <div class="scratch-hint">滑鼠移過去就會開始刮開，範圍更大更好刮</div>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <h3>擲銅錢紀錄</h3>
+                <div class="history-log" id="historyLog">尚未開始擲銅錢</div>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <h3>卦象結果</h3>
+                <div class="hexagram-display">
+                    <table class="hexagram-table" id="hexagramTable">
+                        <thead>
+                            <tr>
+                                <th>行次</th>
+                                <th>數值</th>
+                                <th>線條</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hexagramTableBody">
+                        </tbody>
+                    </table>
+                </div>
+                <div class="hexagram-info" id="hexagramInfo"></div>
+                <div class="output-area" id="outputArea"></div>
+                <div class="action-buttons">
+                    <button class="copy-button" id="copyButton">一鍵複製</button>
+                    <button class="reset-button" id="resetButton">重新起卦</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification">複製成功！</div>
+
+    <script>
+        const hexagramData = {
+            '111111': '乾', '000000': '坤', '100010': '屯', '010001': '蒙', '111010': '需', '010111': '訟',
+            '010000': '師', '000010': '比', '111011': '小畜', '110111': '履', '111000': '泰', '000111': '否',
+            '101111': '同人', '111101': '大有', '001000': '謙', '000100': '豫', '100110': '隨', '011001': '蠱',
+            '110000': '臨', '000011': '觀', '100101': '噬嗑', '101001': '賁', '000001': '剝', '100000': '復',
+            '100111': '無妄', '111001': '大畜', '100001': '頤', '011110': '大過', '010010': '坎', '101101': '離',
+            '001110': '咸', '011100': '恆', '001111': '遯', '111100': '大壯', '000101': '晉', '101000': '明夷',
+            '101011': '家人', '110101': '睽', '001010': '蹇', '010100': '解', '110001': '損', '100011': '益',
+            '111110': '夬', '011111': '姤', '000110': '萃', '011000': '升', '010110': '困', '011010': '井',
+            '101110': '革', '011101': '鼎', '100100': '震', '001001': '艮', '001011': '漸', '110100': '歸妹',
+            '101100': '豐', '001101': '旅', '011011': '巽', '110110': '兌', '010011': '渙', '110010': '節',
+            '110011': '中孚', '001100': '小過', '101010': '既濟', '010101': '未濟'
+        };
+
+        class LiuyaoSystem {
+            constructor() {
+                this.reset();
+                this.lastClickTime = 0;
+                this.mouseEntropy = [];
+                this.scrollEntropy = [];
+                this.keyEntropy = [];
+                this.entropyPool = 0;
+                this.currentMode = 'auto';
+                this.deviceInfo = this.detectDevice();
+                this.mouseTrail = [];
+                this.initializeEntropy();
+                this.initializeEventListeners();
+                this.loadFromStorage();
+                this.initializeMode();
+                this.initScratchCard();
+            }
+
+            detectDevice() {
+                const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const isTouch = 'ontouchstart' in window;
+                const screenWidth = window.innerWidth;
+
+                return {
+                    isMobile: isMobile || (isTouch && screenWidth < 768),
+                    hasTouch: isTouch,
+                    isDesktop: !isMobile && screenWidth >= 768,
+                    screenWidth: screenWidth
+                };
+            }
+
+            initializeEntropy() {
+                // 收集滑鼠移動熵
+                $(document).on('mousemove', (e) => {
+                    this.mouseEntropy.push(e.pageX ^ e.pageY ^ Date.now());
+                    if (this.mouseEntropy.length > 50) this.mouseEntropy.shift();
+                });
+
+                // 收集滾動熵
+                $(window).on('scroll', (e) => {
+                    this.scrollEntropy.push(window.scrollY ^ Date.now());
+                    if (this.scrollEntropy.length > 20) this.scrollEntropy.shift();
+                });
+
+                // 收集鍵盤熵
+                $(document).on('keydown', (e) => {
+                    this.keyEntropy.push(e.keyCode ^ e.timeStamp);
+                    if (this.keyEntropy.length > 30) this.keyEntropy.shift();
+                });
+
+                // 收集設備資訊熵
+                this.deviceEntropy = this.collectDeviceEntropy();
+            }
+
+            collectDeviceEntropy() {
+                const nav = navigator;
+                const screen = window.screen;
+                let entropy = 0;
+
+                entropy ^= (nav.userAgent || '').length;
+                entropy ^= screen.width ^ screen.height;
+                entropy ^= screen.colorDepth ^ screen.pixelDepth;
+                entropy ^= (nav.language || '').charCodeAt(0);
+                entropy ^= Date.now();
+                entropy ^= Math.random() * 0xFFFFFFFF;
+
+                return entropy;
+            }
+
+            reset() {
+                this.currentYao = 0;
+                this.currentToss = 0;
+                this.yaoResults = [];
+                this.tossHistory = [];
+                this.isComplete = false;
+                this.question = '';
+                this.mouseTrail = [];
+
+                // 清空所有UI元素
+                $('#questionInput').val('');
+                $('#resultSection').hide();
+                $('#currentYao').hide();
+                $('#historyLog').text('尚未開始擲銅錢');
+                $('#hexagramTableBody').empty();
+                $('#hexagramInfo').empty();
+                $('#outputArea').text('');
+
+                // 重設按鈕狀態
+                $('#tossButton').prop('disabled', false).text('擲銅錢');
+                $('#questionResetBtn').removeClass('show');
+
+                this.updateUI();
+                this.clearStorage();
+
+                if (this.ctx) {
+                    this.resetScratchCard();
+                }
+            }
+
+            initializeEventListeners() {
+                $('#tossButton').on('click', () => this.performToss('click'));
+                $('#copyButton').on('click', () => this.copyResult());
+                $('#resetButton').on('click', () => this.reset());
+                $('#questionResetBtn').on('click', () => this.reset());
+                $('#questionInput').on('input', () => this.saveQuestion());
+
+                // 模式選擇事件
+                $('input[name="tossMode"]').on('change', (e) => {
+                    this.currentMode = e.target.value;
+                    this.updateModeDisplay();
+                });
+            }
+
+            initScratchCard() {
+                this.scratchWrapper = document.getElementById('scratchWrapper');
+                this.canvas = document.getElementById('scratchCanvas');
+
+                if (!this.scratchWrapper || !this.canvas) return;
+
+                this.ctx = this.canvas.getContext('2d');
+                this.scratchThreshold = 0.8; // 必須刮除 80% 才進入下一擲
+                this.eraseRadius = 40; // 刮除範圍變大
+                this.isResetting = false;
+                this.lastCheck = 0;
+
+                const resizeCanvas = () => {
+                    const rect = this.scratchWrapper.getBoundingClientRect();
+                    if (rect.width && rect.height) {
+                        this.canvas.width = rect.width;
+                        this.canvas.height = rect.height;
+                    }
+                    this.resetScratchCard();
+                };
+
+                resizeCanvas();
+                $(window).on('resize', resizeCanvas);
+
+                const scratchHandler = (e) => this.handleScratch(e);
+                $(this.canvas).on('mousemove touchmove mouseenter', scratchHandler);
+
+                $('#scratchWrapper').css('cursor', 'crosshair');
+            }
+
+            resetScratchCard() {
+                if (!this.ctx || !this.canvas) return;
+
+                this.isResetting = false;
+                this.lastCheck = 0;
+
+                this.ctx.globalCompositeOperation = 'source-over';
+                this.ctx.fillStyle = '#cfd4dc';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.ctx.fillStyle = '#4a5568';
+                this.ctx.font = '600 22px "KaiTi", "楷体", serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('滑鼠移過即可刮開', this.canvas.width / 2, this.canvas.height / 2);
+
+                $('#scratchWrapper').css('cursor', 'crosshair');
+                this.updateScratchBackground();
+            }
+
+            updateScratchBackground() {
+                const yaoNames = ['一', '二', '三', '四', '五', '六'];
+                if (this.currentYao < 6) {
+                    $('#scratchBgText').text(`第 ${yaoNames[this.currentYao]} 爻`);
+                    $('#scratchBgSubText').text(`第 ${this.currentToss + 1} / 3 擲`);
+                } else {
+                    $('#scratchBgText').text('完成');
+                    $('#scratchBgSubText').text('起卦結束');
+                }
+            }
+
+            handleScratch(e) {
+                if (this.isComplete || this.isResetting || !this.canvas || !this.ctx) return;
+                if (e && e.preventDefault) e.preventDefault();
+
+                const rect = this.canvas.getBoundingClientRect();
+                let clientX, clientY;
+
+                if (e.type.includes('touch')) {
+                    clientX = e.originalEvent.touches[0].clientX;
+                    clientY = e.originalEvent.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+
+                const x = clientX - rect.left;
+                const y = clientY - rect.top;
+
+                // Draw erase circle
+                const radius = this.eraseRadius || 40;
+                this.ctx.globalCompositeOperation = 'destination-out';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // 記錄滑鼠軌跡增加熵
+                this.mouseTrail.push({ x, y, time: Date.now() });
+                if (this.mouseTrail.length > 200) this.mouseTrail.shift();
+
+                // Collect entropy
+                this.mouseEntropy.push(x ^ y ^ Date.now());
+                if (this.mouseEntropy.length > 50) this.mouseEntropy.shift();
+
+                // Throttle progress check
+                if (!this.lastCheck || Date.now() - this.lastCheck > 100) {
+                    this.lastCheck = Date.now();
+                    this.checkScratchProgress();
+                }
+            }
+
+            checkScratchProgress() {
+                if (this.isResetting || !this.canvas || !this.ctx) return;
+
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const imageData = this.ctx.getImageData(0, 0, w, h);
+                const pixels = imageData.data;
+                let transparent = 0;
+
+                // Sample pixels to improve performance
+                for (let i = 3; i < pixels.length; i += 16) {
+                    if (pixels[i] < 128) transparent++;
+                }
+
+                const percent = transparent / (pixels.length / 16);
+
+                if (percent > this.scratchThreshold) {
+                    this.isResetting = true;
+                    $('#scratchWrapper').css('cursor', 'wait');
+                    this.performToss('mouse');
+
+                    // Reset card after a short delay
+                    setTimeout(() => {
+                        if (!this.isComplete) {
+                            this.resetScratchCard();
+                        }
+                    }, 300);
+                }
+            }
+
+            initializeMode() {
+                // 根據設備自動設定模式
+                if (this.currentMode === 'auto') {
+                    const recommendedMode = this.deviceInfo.isDesktop ? 'mouse' : 'click';
+                    this.setActiveMode(recommendedMode);
+                } else {
+                    this.setActiveMode(this.currentMode);
+                }
+                this.updateModeDisplay();
+            }
+
+            setActiveMode(mode) {
+                this.activeMode = mode;
+
+                if (mode === 'mouse') {
+                    $('#tossButton').hide();
+                    $('#mouseArea').show();
+                    // Resize canvas when showing
+                    if (this.canvas && this.scratchWrapper) {
+                        const rect = this.scratchWrapper.getBoundingClientRect();
+                        if (rect.width > 0) {
+                            this.canvas.width = rect.width;
+                            this.canvas.height = rect.height;
+                            this.resetScratchCard();
+                        }
+                    }
+                } else {
+                    $('#tossButton').show();
+                    $('#mouseArea').hide();
+                }
+            }
+
+            updateModeDisplay() {
+                const mode = this.currentMode;
+                let description = '';
+
+                switch (mode) {
+                    case 'auto':
+                        description = `自動偵測 - 當前設備：${this.deviceInfo.isDesktop ? '電腦(推薦刮刮樂)' : '手機(推薦點擊)'}`;
+                        this.setActiveMode(this.deviceInfo.isDesktop ? 'mouse' : 'click');
+                        break;
+                    case 'click':
+                        description = '點擊模式 - 點擊按鈕產生隨機值，適合觸控設備';
+                        this.setActiveMode('click');
+                        break;
+                    case 'mouse':
+                        description = '刮刮樂模式 - 滑鼠經過就刮開塗層並收集隨機熵值';
+                        this.setActiveMode('mouse');
+                        break;
+                }
+
+                $('#modeDescription').text(description);
+            }
+
+            saveQuestion() {
+                this.question = $('#questionInput').val().trim();
+                this.saveToStorage();
+            }
+
+            generateRandomValue(method = 'click', event = null) {
+                const now = Date.now();
+                const timeDiff = now - this.lastClickTime;
+                this.lastClickTime = now;
+
+                // 多重熵源收集
+                const cryptoArray = new Uint32Array(4);
+                crypto.getRandomValues(cryptoArray);
+
+                // 收集各種熵源
+                const mouseEntropy = this.mouseEntropy.reduce((acc, val) => acc ^ val, 0);
+                const scrollEntropy = this.scrollEntropy.reduce((acc, val) => acc ^ val, 0);
+                const keyEntropy = this.keyEntropy.reduce((acc, val) => acc ^ val, 0);
+
+                // 高精度時間熵
+                const performanceNow = performance.now() * 1000000;
+                const microTime = (now * 1000) + (performanceNow % 1000);
+
+                // 記憶體熵（基於物件建立時間）
+                const memoryEntropy = (new Date()).getTime() ^ (new Array(10).fill(0).map(() => Math.random()).join('').length);
+
+                // 方法特定熵源
+                let methodEntropy = 0;
+                if (method === 'mouse' && this.mouseTrail.length > 0) {
+                    // 滑鼠軌跡熵：計算軌跡複雜度
+                    const trailEntropy = this.calculateTrailEntropy();
+                    methodEntropy = trailEntropy;
+                } else if (method === 'click' && event) {
+                    // 點擊位置熵
+                    methodEntropy = (event.clientX || 0) ^ (event.clientY || 0);
+                }
+
+                // 組合所有熵源
+                const entropyMix = [
+                    now,
+                    timeDiff,
+                    cryptoArray[0],
+                    cryptoArray[1],
+                    cryptoArray[2],
+                    cryptoArray[3],
+                    mouseEntropy,
+                    scrollEntropy,
+                    keyEntropy,
+                    this.deviceEntropy,
+                    performanceNow,
+                    microTime,
+                    memoryEntropy,
+                    methodEntropy,
+                    Math.random() * 0xFFFFFFFF
+                ];
+
+                const seed = entropyMix.join('|');
+                const hash = this.advancedHash(seed);
+
+                return (hash % 2) + 2;
+            }
+
+            calculateTrailEntropy() {
+                if (this.mouseTrail.length < 2) return 0;
+
+                let entropy = 0;
+                let totalDistance = 0;
+                let directionChanges = 0;
+
+                for (let i = 1; i < this.mouseTrail.length; i++) {
+                    const prev = this.mouseTrail[i - 1];
+                    const curr = this.mouseTrail[i];
+
+                    // 距離熵
+                    const distance = Math.sqrt(Math.pow(curr.x - prev.x, 2) + Math.pow(curr.y - prev.y, 2));
+                    totalDistance += distance;
+
+                    // 方向變化熵
+                    if (i >= 2) {
+                        const prev2 = this.mouseTrail[i - 2];
+                        const angle1 = Math.atan2(prev.y - prev2.y, prev.x - prev2.x);
+                        const angle2 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+                        const angleDiff = Math.abs(angle2 - angle1);
+                        if (angleDiff > 0.5) directionChanges++;
+                    }
+
+                    // 時間間隔熵
+                    const timeDiff = curr.time - prev.time;
+                    entropy ^= (distance * 1000) ^ timeDiff;
+                }
+
+                return entropy ^ (totalDistance * 100) ^ (directionChanges * 10000);
+            }
+
+            advancedHash(str) {
+                // 使用更強的雜湊演算法 (類似 SHA-1 的簡化版)
+                let h1 = 0x67452301;
+                let h2 = 0xEFCDAB89;
+                let h3 = 0x98BADCFE;
+                let h4 = 0x10325476;
+
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+
+                    h1 = ((h1 << 7) | (h1 >>> 25)) + char + h2;
+                    h2 = ((h2 << 11) | (h2 >>> 21)) ^ char + h3;
+                    h3 = ((h3 << 13) | (h3 >>> 19)) + char ^ h4;
+                    h4 = ((h4 << 17) | (h4 >>> 15)) ^ char + h1;
+
+                    // 增加非線性混合
+                    h1 ^= (h2 * 0x5bd1e995) >>> 15;
+                    h2 ^= (h3 * 0x85ebca6b) >>> 13;
+                    h3 ^= (h4 * 0xc2b2ae35) >>> 11;
+                    h4 ^= (h1 * 0x27d4eb2f) >>> 17;
+                }
+
+                // 最終混合
+                h1 ^= h1 >>> 16;
+                h1 *= 0x85ebca6b;
+                h1 ^= h1 >>> 13;
+                h1 *= 0xc2b2ae35;
+                h1 ^= h1 >>> 16;
+
+                return Math.abs(h1);
+            }
+
+            performToss(method = 'click', event = null) {
+                if (this.isComplete) return;
+
+                const now = Date.now();
+                if (now - this.lastClickTime < 200) return;
+
+                const value = this.generateRandomValue(method, event);
+                const time = new Date().toLocaleTimeString('zh-TW', { hour12: false });
+
+                this.tossHistory.push({
+                    value,
+                    time,
+                    yao: this.currentYao + 1,
+                    toss: this.currentToss + 1,
+                    method: method
+                });
+                this.currentToss++;
+
+                if (this.currentToss === 3) {
+                    const yaoValue = this.calculateYaoValue();
+                    this.yaoResults.push(yaoValue);
+                    this.currentYao++;
+                    this.currentToss = 0;
+
+                    if (this.currentYao === 6) {
+                        this.completeHexagram();
+                    }
+                }
+
+                this.updateUI();
+                this.saveToStorage();
+            }
+
+            calculateYaoValue() {
+                const recentTosses = this.tossHistory.slice(-3);
+                const sum = recentTosses.reduce((acc, toss) => acc + toss.value, 0);
+                return sum;
+            }
+
+            completeHexagram() {
+                this.isComplete = true;
+                this.calculateHexagramResult();
+                $('#resultSection').fadeIn();
+                $('#questionResetBtn').addClass('show');
+            }
+
+            calculateHexagramResult() {
+                const binaryMain = this.yaoResults.map(val => val % 2 === 0 ? '0' : '1').join('');
+                const binaryChanged = this.yaoResults.map(val => {
+                    if (val === 6) return '1';
+                    if (val === 9) return '0';
+                    return val % 2 === 0 ? '0' : '1';
+                }).join('');
+
+                const mainHexagram = hexagramData[binaryMain] || '未知';
+                const changedHexagram = hexagramData[binaryChanged] || '未知';
+
+                const changedLines = this.yaoResults
+                    .map((val, idx) => val === 6 || val === 9 ? idx : -1)
+                    .filter(idx => idx !== -1);
+
+                this.displayResult(mainHexagram, changedHexagram, changedLines);
+            }
+
+            displayResult(mainHexagram, changedHexagram, changedLines) {
+                const yaoNames = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+                const completedTime = new Date().toLocaleString('zh-TW');
+
+                this.displayHexagramTable(changedLines);
+
+                const infoHtml = `
+                    <div>主卦：<span class="hexagram-name">${mainHexagram}</span></div>
+                    <div>變卦：<span class="hexagram-name">${changedHexagram}</span></div>
+                    <div>變爻：${changedLines.length > 0 ? changedLines.map(i => yaoNames[i]).join('、') : '無'}</div>
+                    <div>完成時間：${completedTime}</div>
+                `;
+                $('#hexagramInfo').html(infoHtml);
+
+                const outputText = this.generateOutputText(mainHexagram, changedHexagram, changedLines, completedTime);
+                $('#outputArea').text(outputText);
+            }
+
+            displayHexagramTable(changedLines) {
+                const yaoNames = ['初爻 (1)', '二爻 (2)', '三爻 (3)', '四爻 (4)', '五爻 (5)', '上爻 (6)'];
+                let tableHtml = '';
+
+                for (let i = 5; i >= 0; i--) {
+                    const value = this.yaoResults[i];
+                    const isChanging = changedLines.includes(i);
+                    const lineSymbol = this.getLineSymbol(value);
+                    const rowClass = isChanging ? 'changing-line' : '';
+                    const changingNote = isChanging ? '<br><span class="changing-note">(變爻)</span>' : '';
+
+                    tableHtml += `
+                        <tr class="${rowClass}">
+                            <td class="yao-name">${yaoNames[i]}</td>
+                            <td class="yao-value">${value}${changingNote}</td>
+                            <td class="yao-line">${lineSymbol}</td>
+                        </tr>
+                    `;
+                }
+
+                $('#hexagramTableBody').html(tableHtml);
+            }
+
+            getLineSymbol(value) {
+                switch (value) {
+                    case 6: return '––  ––';
+                    case 7: return '———';
+                    case 8: return '––  ––';
+                    case 9: return '———';
+                    default: return '???';
+                }
+            }
+
+            generateOutputText(mainHexagram, changedHexagram, changedLines, completedTime) {
+                const yaoNames = ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'];
+                const questionText = this.question ? `問題：${this.question}\n` : '';
+
+                const outputText = `${questionText}起卦時間：${completedTime}
+六爻（由下而上）：${this.yaoResults.join(' ')}
+主卦：${mainHexagram}
+變卦：${changedHexagram}
+變爻：${changedLines.length > 0 ? changedLines.map(i => yaoNames[i]).join('、') : '無'}
+
+JSON: ${JSON.stringify({
+                    question: this.question,
+                    yao: this.yaoResults,
+                    main: mainHexagram,
+                    changed: changedHexagram,
+                    changedIndex: changedLines,
+                    timestamp: Date.now()
+                })}`;
+                return outputText;
+            }
+
+            updateUI() {
+                const totalProgress = ((this.currentYao * 3 + this.currentToss) / 18) * 100;
+                $('#progressFill').css('width', `${totalProgress}%`);
+
+                if (this.isComplete) {
+                    $('#progressText').text('起卦完成');
+                    $('#progressDetail').text('六爻俱全，卦象已成');
+                    $('#tossButton').prop('disabled', true).text('起卦完成');
+                    $('#currentYao').hide();
+                } else if (this.currentYao === 0 && this.currentToss === 0) {
+                    $('#progressText').text('準備開始起卦');
+                    $('#progressDetail').text('輸入問題後點擊「擲銅錢」開始');
+                    $('#currentYao').hide();
+                } else {
+                    const yaoNames = ['一', '二', '三', '四', '五', '六'];
+                    $('#progressText').text(`第${yaoNames[this.currentYao]}爻，第 ${this.currentToss + 1}/3 次`);
+                    $('#progressDetail').text(`共需 18 次擲銅錢，目前已完成 ${this.currentYao * 3 + this.currentToss} 次`);
+
+                    $('#currentYaoTitle').text(`第${yaoNames[this.currentYao]}爻`);
+                    const currentYaoTosses = this.tossHistory.filter(h => h.yao === this.currentYao + 1);
+                    $('#currentTosses').text(currentYaoTosses.map(h => h.value).join(' '));
+                    $('#currentYao').show();
+                }
+
+                if (this.activeMode === 'mouse') {
+                    this.updateScratchBackground();
+                }
+
+                this.updateHistory();
+            }
+
+            updateHistory() {
+                if (this.tossHistory.length === 0) {
+                    $('#historyLog').text('尚未開始擲銅錢');
+                    return;
+                }
+
+                let html = '';
+                let currentYaoIndex = -1;
+
+                this.tossHistory.forEach((entry, index) => {
+                    if (entry.yao !== currentYaoIndex) {
+                        if (currentYaoIndex !== -1) {
+                            html += '<div class="yao-separator"></div>';
+                        }
+                        currentYaoIndex = entry.yao;
+                    }
+
+                    html += `<div class="toss-entry">第 ${index + 1} 次擲：${entry.value} (${entry.time})</div>`;
+                });
+
+                $('#historyLog').html(html);
+            }
+
+            copyResult() {
+                const text = $('#outputArea').text();
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showNotification('複製成功！');
+                }).catch(() => {
+                    $('#outputArea').select();
+                    document.execCommand('copy');
+                    this.showNotification('複製成功！');
+                });
+            }
+
+            showNotification(message) {
+                $('#notification').text(message).addClass('show');
+                setTimeout(() => {
+                    $('#notification').removeClass('show');
+                }, 2000);
+            }
+
+            saveToStorage() {
+                const state = {
+                    currentYao: this.currentYao,
+                    currentToss: this.currentToss,
+                    yaoResults: this.yaoResults,
+                    tossHistory: this.tossHistory,
+                    isComplete: this.isComplete,
+                    question: this.question || '',
+                    currentMode: this.currentMode
+                };
+                localStorage.setItem('liuyaoState', JSON.stringify(state));
+            }
+
+            loadFromStorage() {
+                const saved = localStorage.getItem('liuyaoState');
+                if (saved) {
+                    const state = JSON.parse(saved);
+                    this.currentYao = state.currentYao || 0;
+                    this.currentToss = state.currentToss || 0;
+                    this.yaoResults = state.yaoResults || [];
+                    this.tossHistory = state.tossHistory || [];
+                    this.isComplete = state.isComplete || false;
+                    this.question = state.question || '';
+                    this.currentMode = state.currentMode || 'auto';
+
+                    $('#questionInput').val(this.question);
+                    $(`input[name="tossMode"][value="${this.currentMode}"]`).prop('checked', true);
+
+                    if (this.isComplete && this.yaoResults.length === 6) {
+                        this.calculateHexagramResult();
+                        $('#resultSection').show();
+                        $('#questionResetBtn').addClass('show');
+                    }
+
+                    this.updateUI();
+                }
+            }
+
+            clearStorage() {
+                localStorage.removeItem('liuyaoState');
+            }
+        }
+
+        $(document).ready(() => {
+            window.liuyaoSystem = new LiuyaoSystem();
+        });
+    </script>
+</body>
+
+</html>
