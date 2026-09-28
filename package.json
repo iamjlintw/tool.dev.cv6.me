@@ -1,0 +1,16 @@
+{
+  "name": "tool-dev-cv6-me",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "純靜態小工具站；npm 相依只給 FTP 同步腳本用，站台本身不需要建置。共用排盤核心的測試用 Node 內建 test runner，不另加相依",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "sync": "node scripts/ftp-sync.mjs",
+    "push": "node scripts/ftp-sync.mjs push",
+    "pull": "node scripts/ftp-sync.mjs pull"
+  },
+  "devDependencies": {
+    "basic-ftp": "^6.2.0"
+  }
+}

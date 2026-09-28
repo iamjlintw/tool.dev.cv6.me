@@ -1,0 +1,9 @@
+node_modules/
+
+# FTP 帳密等同步參數，絕對不要進版控
+.env
+.env.local
+
+.DS_Store
+.idea/
+*.log

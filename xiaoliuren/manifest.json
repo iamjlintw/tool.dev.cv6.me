@@ -1,0 +1,32 @@
+{
+    "name": "小六壬快速問事",
+    "short_name": "小六壬",
+    "description": "輸入問題與三個直覺數字，以三數連續起課法排出三宮，取得趨勢判讀與 AI 解盤 Prompt。純前端、可離線。",
+    "lang": "zh-TW",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f4efe7",
+    "theme_color": "#f4efe7",
+    "icons": [
+        {
+            "src": "./icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "./icons/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

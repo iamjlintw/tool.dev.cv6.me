@@ -4,6 +4,12 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>蓍草六爻起卦（二版）</title>
+        <!-- Google Analytics（設定集中於 analytics.js）-->
+        <script src="analytics.js"></script>
+        <!-- 共用六爻排盤核心，載入順序：曆法 → 排盤 → 解卦 Prompt -->
+        <script src="ganzhiCalendar.js"></script>
+        <script src="liuyaoCore.js"></script>
+        <script src="liuyaoPrompt.js"></script>
         <style>
             :root {
                 --ink: #1e2a38;
@@ -213,6 +219,54 @@
 
             .table-wrap {
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .chart-table {
+                min-width: 900px;
+                font-size: 0.92rem;
+                white-space: nowrap;
+            }
+
+            .flag {
+                display: inline-block;
+                padding: 1px 6px;
+                margin: 0 2px 2px 0;
+                border-radius: 6px;
+                background: #efe4d2;
+                font-size: 0.78rem;
+            }
+
+            .flag-warn {
+                background: #f3ddd0;
+                color: var(--accent-strong);
+            }
+
+            .sub {
+                display: block;
+                color: var(--muted);
+                font-size: 0.78rem;
+            }
+
+            .field {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            select {
+                border: 1px solid #d7cbbd;
+                border-radius: 8px;
+                padding: 8px 10px;
+                font-family: inherit;
+                font-size: 0.95rem;
+                background: #fffaf4;
+                color: inherit;
+            }
+
+            #copyStatus {
+                color: var(--muted);
+                font-size: 0.9rem;
             }
 
             table {
@@ -290,6 +344,8 @@
                 <p>
                     使用蓍草法的 1/16、5/16、7/16、3/16 概率分佈生成
                     6、8、7、9，並顯示每一爻三步操作的抽取情況，方便對照原版銅錢法。
+                    起卦完成後自動排出納甲盤面：八宮世應、納甲六親、六神、伏神、月建日辰與旬空，
+                    可直接複製完整 JSON 或解卦 Prompt。
                 </p>
             </header>
 
@@ -302,11 +358,22 @@
                         placeholder="例：此專案本季應該走什麼策略？"
                     ></textarea>
                     <div class="actions" style="margin-top: 10px">
+                        <div class="field">
+                            <label for="genderSelect">問卦者性別</label>
+                            <select id="genderSelect">
+                                <option value="">不指定</option>
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                            </select>
+                        </div>
                         <button class="ghost" id="clearQuestion">清空</button>
                         <span class="badge" id="modeBadge"
                             >蓍草算法 · 單次生成一爻</span
                         >
                     </div>
+                    <p style="margin: 10px 0 0; font-size: 0.88rem">
+                        性別只用於提示感情類用神的取法，留空時程式不臆測，交由解卦者判斷。
+                    </p>
                 </section>
 
                 <section class="panel">
@@ -345,17 +412,25 @@
             <section class="panel">
                 <h3>六爻結果</h3>
                 <div class="table-wrap">
-                    <table>
+                    <table class="chart-table">
                         <thead>
                             <tr>
-                                <th>爻位（由上而下顯示）</th>
-                                <th>數值</th>
+                                <th>爻位</th>
+                                <th>六神</th>
+                                <th>伏神</th>
+                                <th>六親</th>
+                                <th>納甲</th>
+                                <th>五行</th>
                                 <th>爻象</th>
+                                <th>世應</th>
+                                <th>動變</th>
+                                <th>變爻</th>
+                                <th>狀態</th>
                             </tr>
                         </thead>
                         <tbody id="hexagramBody">
                             <tr>
-                                <td colspan="3" style="color: var(--muted)">
+                                <td colspan="11" style="color: var(--muted)">
                                     尚無資料
                                 </td>
                             </tr>
@@ -374,13 +449,24 @@
                     <span class="badge" id="mainName">主卦：—</span>
                     <span class="badge" id="changedName">變卦：—</span>
                     <span class="badge" id="changingLines">變爻：—</span>
+                    <span class="badge" id="timeBadge">起卦時間：—</span>
+                    <span class="badge" id="xunkongBadge">旬空：—</span>
                 </div>
+                <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--muted)">
+                    表格由上而下顯示，爻位編號仍為由下而上的 1（初爻）至 6（上爻）。
+                </p>
             </section>
 
             <section class="panel">
                 <h3>紀錄 / 導出</h3>
                 <div class="actions" style="margin-bottom: 10px">
-                    <button class="ghost" id="copyButton">複製結果</button>
+                    <button class="ghost" id="copyJsonButton" disabled>
+                        複製完整 JSON
+                    </button>
+                    <button class="ghost" id="copyPromptButton" disabled>
+                        複製解卦 Prompt
+                    </button>
+                    <span id="copyStatus" role="status" aria-live="polite"></span>
                 </div>
                 <pre id="outputArea">
 等待起卦完成後會自動填入 JSON 及摘要。</pre
@@ -394,19 +480,20 @@
         </div>
 
         <script>
-            const hexagramData = {
-                '111111': '乾', '000000': '坤', '100010': '屯', '010001': '蒙', '111010': '需', '010111': '訟',
-                '010000': '師', '000010': '比', '111011': '小畜', '110111': '履', '111000': '泰', '000111': '否',
-                '101111': '同人', '111101': '大有', '001000': '謙', '000100': '豫', '100110': '隨', '011001': '蠱',
-                '110000': '臨', '000011': '觀', '100101': '噬嗑', '101001': '賁', '000001': '剝', '100000': '復',
-                '100111': '無妄', '111001': '大畜', '100001': '頤', '011110': '大過', '010010': '坎', '101101': '離',
-                '001110': '咸', '011100': '恆', '001111': '遯', '111100': '大壯', '000101': '晉', '101000': '明夷',
-                '101011': '家人', '110101': '睽', '001010': '蹇', '010100': '解', '110001': '損', '100011': '益',
-                '111110': '夬', '011111': '姤', '000110': '萃', '011000': '升', '010110': '困', '011010': '井',
-                '101110': '革', '011101': '鼎', '100100': '震', '001001': '艮', '001011': '漸', '110100': '歸妹',
-                '101100': '豐', '001101': '旅', '011011': '巽', '110110': '兌', '010011': '渙', '110010': '節',
-                '110011': '中孚', '001100': '小過', '101010': '既濟', '010101': '未濟'
-            };
+            const TIME_ZONE = "Asia/Taipei";
+
+            const escapeHtml = (value) =>
+                String(value ?? "").replace(
+                    /[&<>"']/g,
+                    (ch) =>
+                        ({
+                            "&": "&amp;",
+                            "<": "&lt;",
+                            ">": "&gt;",
+                            '"': "&quot;",
+                            "'": "&#39;",
+                        })[ch],
+                );
 
             class YarrowDivination {
                 constructor() {
@@ -415,9 +502,14 @@
                     this.currentLine = 0;
                     this.isComplete = false;
                     this.question = "";
+                    this.gender = "";
+                    // 起第一爻時固定，避免起卦過程跨日或跨時辰
+                    this.divinationStartedAt = null;
+                    this.chart = null;
 
                     this.el = {
                         question: document.getElementById("questionInput"),
+                        gender: document.getElementById("genderSelect"),
                         clearQuestion: document.getElementById("clearQuestion"),
                         tossButton: document.getElementById("tossButton"),
                         resetButton: document.getElementById("resetButton"),
@@ -429,11 +521,17 @@
                         mainName: document.getElementById("mainName"),
                         changedName: document.getElementById("changedName"),
                         changingLines: document.getElementById("changingLines"),
+                        timeBadge: document.getElementById("timeBadge"),
+                        xunkongBadge: document.getElementById("xunkongBadge"),
                         output: document.getElementById("outputArea"),
-                        copy: document.getElementById("copyButton"),
+                        copyJson: document.getElementById("copyJsonButton"),
+                        copyPrompt: document.getElementById("copyPromptButton"),
+                        copyStatus: document.getElementById("copyStatus"),
                         historyList: document.getElementById("historyList"),
                     };
 
+                    this.el.copyJson.disabled = true;
+                    this.el.copyPrompt.disabled = true;
                     this.bindEvents();
                     this.updateUI();
                 }
@@ -445,8 +543,11 @@
                     this.el.resetButton.addEventListener("click", () =>
                         this.reset(),
                     );
-                    this.el.copy.addEventListener("click", () =>
-                        this.copyResult(),
+                    this.el.copyJson.addEventListener("click", () =>
+                        this.copyJson(),
+                    );
+                    this.el.copyPrompt.addEventListener("click", () =>
+                        this.copyPrompt(),
                     );
                     this.el.clearQuestion.addEventListener("click", () => {
                         this.el.question.value = "";
@@ -455,10 +556,18 @@
                     this.el.question.addEventListener("input", (e) => {
                         this.question = e.target.value.trim();
                     });
+                    this.el.gender.addEventListener("change", (e) => {
+                        this.gender = e.target.value;
+                    });
                 }
 
                 generateNext() {
                     if (this.isComplete) return;
+
+                    // 起卦時間在第一爻就固定下來，之後的干支、月建、日辰、六神、旬空全部以它為準
+                    if (!this.divinationStartedAt) {
+                        this.divinationStartedAt = new Date();
+                    }
 
                     const { value, rounds, remaining } =
                         this.generateYarrowLine();
@@ -551,76 +660,149 @@
                 }
 
                 displayHexagram() {
-                    const changedLines = [];
-                    const binaryMain = this.lines
-                        .map((v) => (v % 2 === 0 ? "0" : "1"))
-                        .join("");
-                    const binaryChanged = this.lines
-                        .map((v) => {
-                            if (v === 6) return "1";
-                            if (v === 9) return "0";
-                            return v % 2 === 0 ? "0" : "1";
-                        })
-                        .join("");
-
-                    const mainName = hexagramData[binaryMain] || "未知";
-                    const changedName = hexagramData[binaryChanged] || "未知";
-
-                    this.lines.forEach((v, idx) => {
-                        if (v === 6 || v === 9) changedLines.push(idx);
+                    // 排盤一律交給共用核心，本頁不自行推算干支、納甲或六親
+                    this.chart = LiuyaoCore.buildChart({
+                        yao: this.lines,
+                        date: this.divinationStartedAt,
+                        timeZone: TIME_ZONE,
+                        question: this.question,
+                        gender: this.gender,
                     });
 
-                    this.el.mainName.textContent = `主卦：${mainName}`;
-                    this.el.changedName.textContent = `變卦：${changedName}`;
-                    this.el.changingLines.textContent = `變爻：${changedLines.length ? changedLines.map((i) => `第 ${i + 1} 爻`).join("、") : "無"}`;
+                    const chart = this.chart;
+                    const main = chart.mainHexagram;
+                    const changed = chart.changedHexagram;
+                    const time = chart.time;
 
-                    this.renderHexagramTable(changedLines);
-                    this.renderOutput(mainName, changedName, changedLines);
+                    this.el.mainName.textContent = `主卦：${main.name}（${main.palace}宮${main.generation}·${main.palaceElement}）`;
+                    this.el.changedName.textContent = changed
+                        ? `變卦：${changed.name}（${changed.palace}宮${changed.generation}）`
+                        : "變卦：無（六爻皆靜）";
+                    this.el.changingLines.textContent = `變爻：${
+                        chart.changingLines.length
+                            ? chart.changingLines
+                                  .map((p) => `第 ${p} 爻`)
+                                  .join("、")
+                            : "無"
+                    }`;
+                    this.el.timeBadge.textContent = `${time.startedAtLocal}　${time.yearGanzhi}年 ${time.monthGanzhi}月 ${time.dayGanzhi}日 ${time.hourGanzhi}時`;
+                    this.el.xunkongBadge.textContent = `旬空：${time.xunkong.join("、")}（${time.xun}旬）`;
+
+                    this.renderHexagramTable();
+                    this.renderOutput();
                 }
 
-                renderHexagramTable(changedLines) {
-                    if (!this.lines.length) return;
+                /** 把單爻的空、破、暗動等狀態整理成標記陣列。 */
+                lineFlags(line) {
+                    const r = line.relations;
+                    const flags = [];
+                    if (r.void) flags.push({ text: "空", warn: true });
+                    if (r.monthBroken) flags.push({ text: "月破", warn: true });
+                    if (r.dayBroken) flags.push({ text: "日破", warn: true });
+                    if (r.hiddenAction) flags.push({ text: "暗動", warn: true });
+                    if (r.dayClash && !r.dayBroken && !r.hiddenAction) {
+                        flags.push({ text: "日沖", warn: false });
+                    }
+                    if (r.dayCombine) flags.push({ text: "日合", warn: false });
+                    if (r.monthCombine)
+                        flags.push({ text: "月合", warn: false });
+                    if (r.entombedByDay)
+                        flags.push({ text: "日墓", warn: true });
+                    if (r.vigor) flags.push({ text: r.vigor, warn: false });
+                    return flags;
+                }
 
-                    const yaoNames = [
-                        "上爻 (6)",
-                        "五爻 (5)",
-                        "四爻 (4)",
-                        "三爻 (3)",
-                        "二爻 (2)",
+                renderHexagramTable() {
+                    if (!this.chart) return;
+
+                    const positionNames = [
                         "初爻 (1)",
+                        "二爻 (2)",
+                        "三爻 (3)",
+                        "四爻 (4)",
+                        "五爻 (5)",
+                        "上爻 (6)",
                     ];
-                    let html = "";
+                    const rows = [];
 
+                    // 由上而下顯示，position 仍是由下而上的編號
                     for (let i = 5; i >= 0; i--) {
-                        const value = this.lines[i];
-                        const isChanging = value === 6 || value === 9;
-                        const symbol = value % 2 === 0 ? "––  ––" : "———";
-                        const cls = value % 2 === 0 ? "yin" : "yang";
-                        const changeMark = isChanging ? "changing" : "";
-                        html += `
-                        <tr class="${changeMark}">
-                            <td>${yaoNames[5 - i]}</td>
-                            <td class="${cls}">${value}${isChanging ? " (變)" : ""}</td>
-                            <td>${symbol}</td>
+                        const line = this.chart.lines[i];
+                        const cls = line.yinYang === "陰" ? "yin" : "yang";
+                        const symbol =
+                            line.yinYang === "陰" ? "––　––" : "———";
+                        const hidden = line.hiddenSpirit
+                            ? `${escapeHtml(line.hiddenSpirit.relative)}${escapeHtml(line.hiddenSpirit.najiaStem)}${escapeHtml(line.hiddenSpirit.najiaBranch)}<span class="sub">${escapeHtml(line.hiddenSpirit.relation)}</span>`
+                            : "—";
+                        const moving = line.moving
+                            ? `${escapeHtml(line.movingType)}<span class="sub">${escapeHtml(line.value)} → ${escapeHtml(line.changed.value)}</span>`
+                            : "靜";
+                        const changedCell = line.changed
+                            ? `${escapeHtml(line.changed.relative)}${escapeHtml(line.changed.najiaStem)}${escapeHtml(line.changed.najiaBranch)}${escapeHtml(line.changed.element)}${
+                                  line.changed.transforms.length
+                                      ? `<span class="sub">${escapeHtml(line.changed.transforms.join("、"))}</span>`
+                                      : ""
+                              }`
+                            : "—";
+                        const flags = this.lineFlags(line)
+                            .map(
+                                (f) =>
+                                    `<span class="flag${f.warn ? " flag-warn" : ""}">${escapeHtml(f.text)}</span>`,
+                            )
+                            .join("");
+
+                        rows.push(`
+                        <tr class="${line.moving ? "changing" : ""}">
+                            <td>${escapeHtml(positionNames[i])}</td>
+                            <td>${escapeHtml(line.sixSpirit)}</td>
+                            <td>${hidden}</td>
+                            <td>${escapeHtml(line.relative)}</td>
+                            <td>${escapeHtml(line.najiaStem)}${escapeHtml(line.najiaBranch)}</td>
+                            <td>${escapeHtml(line.element)}</td>
+                            <td class="${cls}">${symbol}<span class="sub">${escapeHtml(line.value)}</span></td>
+                            <td>${escapeHtml(line.shiYing || "")}</td>
+                            <td>${moving}</td>
+                            <td>${changedCell}</td>
+                            <td>${flags}</td>
                         </tr>
-                    `;
+                    `);
                     }
 
-                    this.el.hexagramBody.innerHTML = html;
+                    this.el.hexagramBody.innerHTML = rows.join("");
                 }
 
-                renderOutput(mainName, changedName, changedLines) {
-                    const completedTime = new Date().toISOString();
-                    const data = {
-                        question: this.question,
-                        yao: this.lines,
-                        main: mainName,
-                        changed: changedName,
-                        changedIndex: changedLines,
-                        timestamp: completedTime,
-                    };
+                /** 摘要文字：只列人眼要看的重點，完整資料在 JSON。 */
+                buildSummary() {
+                    const chart = this.chart;
+                    const time = chart.time;
+                    const shi = chart.lines.find((l) => l.shiYing === "世");
+                    const ying = chart.lines.find((l) => l.shiYing === "應");
+                    const hidden = chart.lines
+                        .filter((l) => l.hiddenSpirit)
+                        .map(
+                            (l) =>
+                                `第${l.position}爻伏${l.hiddenSpirit.relative}${l.hiddenSpirit.najiaStem}${l.hiddenSpirit.najiaBranch}`,
+                        );
 
-                    this.el.output.textContent = `問題：${this.question || "（未填）"}\n六爻（由下而上數值）：${this.lines.join(" ")}\n主卦：${mainName}\n變卦：${changedName}\n變爻：${changedLines.length ? changedLines.map((i) => `第${i + 1}`).join("、") : "無"}\n完成時間：${completedTime}\n\nJSON: ${JSON.stringify(data, null, 2)}`;
+                    return [
+                        `問題：${chart.question || "（未填）"}`,
+                        `問卦者性別：${chart.gender === "male" ? "男" : chart.gender === "female" ? "女" : "未指定"}`,
+                        `起卦時間：${time.startedAtLocal}（${time.timezone}）／UTC ${time.startedAtUtc}`,
+                        `四柱：${time.yearGanzhi}年 ${time.monthGanzhi}月 ${time.dayGanzhi}日 ${time.hourGanzhi}時　當令節氣：${time.monthTerm}`,
+                        `月建：${time.monthBranch}　日辰：${time.dayBranch}　旬空：${time.xunkong.join("、")}`,
+                        `六爻（由下而上）：${chart.yao.join(" ")}`,
+                        `主卦：${chart.mainHexagram.name}（${chart.mainHexagram.palace}宮${chart.mainHexagram.generation}·${chart.mainHexagram.palaceElement}）`,
+                        `變卦：${chart.changedHexagram ? chart.changedHexagram.name : "無（六爻皆靜）"}`,
+                        `動爻：${chart.changingLines.length ? chart.changingLines.map((p) => `第${p}爻`).join("、") : "無"}`,
+                        `世爻：第${shi.position}爻 ${shi.relative}${shi.najiaStem}${shi.najiaBranch}　應爻：第${ying.position}爻 ${ying.relative}${ying.najiaStem}${ying.najiaBranch}`,
+                        `卦中缺：${chart.hexagramRelations.missingRelatives.join("、") || "無"}${hidden.length ? `　伏神：${hidden.join("、")}` : ""}`,
+                    ].join("\n");
+                }
+
+                renderOutput() {
+                    this.el.output.textContent = `${this.buildSummary()}\n\n完整排盤 JSON：\n${JSON.stringify(this.chart, null, 2)}`;
+                    this.el.copyJson.disabled = false;
+                    this.el.copyPrompt.disabled = false;
                     this.renderHistory();
                 }
 
@@ -668,16 +850,53 @@
                     }
                 }
 
-                copyResult() {
-                    const text = this.el.output.textContent;
-                    navigator.clipboard.writeText(text).catch(() => {
+                copyJson() {
+                    if (!this.chart) return;
+                    this.copyText(
+                        JSON.stringify(this.chart, null, 2),
+                        "已複製完整 JSON",
+                    );
+                }
+
+                copyPrompt() {
+                    if (!this.chart) return;
+                    this.copyText(
+                        LiuyaoPrompt.buildPrompt(this.chart),
+                        "已複製解卦 Prompt",
+                    );
+                }
+
+                copyText(text, message) {
+                    const fallback = () => {
                         const textarea = document.createElement("textarea");
                         textarea.value = text;
                         document.body.appendChild(textarea);
                         textarea.select();
                         document.execCommand("copy");
                         document.body.removeChild(textarea);
-                    });
+                    };
+
+                    const done = () => this.showCopyStatus(message);
+                    if (navigator.clipboard) {
+                        navigator.clipboard
+                            .writeText(text)
+                            .then(done)
+                            .catch(() => {
+                                fallback();
+                                done();
+                            });
+                    } else {
+                        fallback();
+                        done();
+                    }
+                }
+
+                showCopyStatus(message) {
+                    this.el.copyStatus.textContent = message;
+                    clearTimeout(this.copyStatusTimer);
+                    this.copyStatusTimer = setTimeout(() => {
+                        this.el.copyStatus.textContent = "";
+                    }, 2000);
                 }
 
                 reset() {
@@ -685,16 +904,23 @@
                     this.history = [];
                     this.currentLine = 0;
                     this.isComplete = false;
+                    this.divinationStartedAt = null;
+                    this.chart = null;
                     this.el.roundDetails.innerHTML =
                         '<div style="color: var(--muted);">尚未開始計算，點擊「搖蓍草」取得第一爻。</div>';
                     this.el.hexagramBody.innerHTML =
-                        '<tr><td colspan="3" style="color: var(--muted);">尚無資料</td></tr>';
+                        '<tr><td colspan="11" style="color: var(--muted);">尚無資料</td></tr>';
                     this.el.mainName.textContent = "主卦：—";
                     this.el.changedName.textContent = "變卦：—";
                     this.el.changingLines.textContent = "變爻：—";
+                    this.el.timeBadge.textContent = "起卦時間：—";
+                    this.el.xunkongBadge.textContent = "旬空：—";
                     this.el.output.textContent =
-                        "等待起卦完成後會自動填入 JSON 及摘要。";
+                        "等待起卦完成後會自動填入完整排盤 JSON 及摘要。";
                     this.el.historyList.textContent = "尚無記錄";
+                    this.el.copyJson.disabled = true;
+                    this.el.copyPrompt.disabled = true;
+                    this.el.copyStatus.textContent = "";
                     this.updateUI();
                 }
             }

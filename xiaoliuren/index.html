@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <title>小六壬快速問事</title>
+        <meta name="description" content="小六壬快速問事：輸入問題與三個直覺數字，以三數連續起課法排出三宮，取得趨勢判讀與 AI 解盤 Prompt。純前端、可離線。" />
+        <meta name="theme-color" content="#f4efe7" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#151b24" media="(prefers-color-scheme: dark)" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="小六壬" />
+        <link rel="manifest" href="./manifest.json" />
+        <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon-180.png" />
+        <!-- Google Analytics（設定集中於上層 analytics.js；只送頁面瀏覽與功能名稱，不送任何問題內容）-->
+        <script src="../analytics.js"></script>
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
+    <body>
+        <a class="skip-link" href="#view">跳到主要內容</a>
+        <div class="app">
+            <header class="app-header">
+                <a class="brand" href="#/" aria-label="小六壬快速問事 首頁">
+                    <span class="brand-mark" aria-hidden="true"></span>
+                    <span class="brand-text">小六壬快速問事</span>
+                </a>
+                <span class="brand-sub">三數連續起課</span>
+            </header>
+
+            <main id="view" class="view" tabindex="-1" aria-live="polite"></main>
+
+            <nav class="tabbar" aria-label="主要頁面">
+                <a href="#/" data-route="home">
+                    <span class="tab-icon" aria-hidden="true">✦</span>
+                    <span>問事</span>
+                </a>
+                <a href="#/history" data-route="history">
+                    <span class="tab-icon" aria-hidden="true">☰</span>
+                    <span>歷史</span>
+                </a>
+                <a href="#/validation" data-route="validation">
+                    <span class="tab-icon" aria-hidden="true">✓</span>
+                    <span>驗證</span>
+                </a>
+                <a href="#/settings" data-route="settings">
+                    <span class="tab-icon" aria-hidden="true">⚙</span>
+                    <span>設定</span>
+                </a>
+            </nav>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+        <!-- 載入順序：六宮資料 → 核心 → 解讀 → Prompt → 儲存 → 各 view → app -->
+        <script src="./xiaoliurenPalaces.js"></script>
+        <script src="./xiaoliurenCore.js"></script>
+        <script src="./xiaoliurenInterpreter.js"></script>
+        <script src="./xiaoliurenPrompt.js"></script>
+        <script src="./xiaoliurenStore.js"></script>
+        <script src="./views/home.js"></script>
+        <script src="./views/result.js"></script>
+        <script src="./views/history.js"></script>
+        <script src="./views/validation.js"></script>
+        <script src="./views/settings.js"></script>
+        <script src="./app.js"></script>
+    </body>
+</html>
