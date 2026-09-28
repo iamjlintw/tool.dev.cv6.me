@@ -224,3 +224,29 @@ test('八個分類固定，且分類不影響起課', () => {
     assert.equal(Core.categoryLabel('unknown'), '一般事件');
     assert.equal(calculateXiaoLiuRen.length, 1, 'calculateXiaoLiuRen 只接受 numbers 一個參數');
 });
+
+/* ------------------------------------------------------------------ */
+/* 隨機數                                                               */
+/* ------------------------------------------------------------------ */
+
+test('randomNumbers：三個 1–99 的整數，落在邊界時正確', () => {
+    for (let i = 0; i < 500; i++) {
+        const nums = Core.randomNumbers();
+        assert.equal(nums.length, 3);
+        nums.forEach((n) => {
+            assert.ok(Number.isInteger(n) && n >= 1 && n <= 99, String(n));
+        });
+    }
+    assert.deepEqual(Core.randomNumbers(() => 0), [1, 1, 1]);
+    assert.deepEqual(Core.randomNumbers(() => 0.999999), [99, 99, 99]);
+    assert.equal(Core.RANDOM_MIN, 1);
+    assert.equal(Core.RANDOM_MAX, 99);
+});
+
+test('隨機數可直接起課，且 rawInput 前綴可辨識來源', () => {
+    const nums = Core.randomNumbers();
+    assert.equal(calculateXiaoLiuRen(nums).palaces.length, 3);
+    assert.equal(Core.isRandomRawInput(Core.RANDOM_PREFIX + nums.join(' ')), true);
+    assert.equal(Core.isRandomRawInput('73 59 35'), false);
+    assert.equal(Core.isRandomRawInput(null), false);
+});

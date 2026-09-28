@@ -76,6 +76,11 @@
     box-sizing: border-box;
 }
 
+/* 讓 hidden 屬性優先於任何 display 設定（例如 .badge 的 inline-block） */
+[hidden] {
+    display: none !important;
+}
+
 html {
     -webkit-text-size-adjust: 100%;
 }

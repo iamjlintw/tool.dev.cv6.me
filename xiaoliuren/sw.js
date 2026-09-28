@@ -7,7 +7,7 @@
  */
 'use strict';
 
-const VERSION = 'xiaoliuren-v1.0.0';
+const VERSION = 'xiaoliuren-v1.1.0';
 const SHELL = [
     './',
     './index.html',

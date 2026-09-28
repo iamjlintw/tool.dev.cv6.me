@@ -45,6 +45,11 @@
                             <label for="numbers">${M.numbersLabel}</label>
                             <input id="numbers" name="numbers" class="numbers" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="go" placeholder="${M.numbersPlaceholder}" />
                             <p class="hint">${M.numbersHint}</p>
+                            <div class="actions" style="margin-top:8px">
+                                <button type="button" id="randomButton" class="small">${M.randomNumbers}</button>
+                                <span id="randomFlag" class="badge" hidden>${M.randomBadge}</span>
+                            </div>
+                            <p class="hint">${M.randomHint}</p>
                         </div>
                         <div id="formError" class="error" role="alert" hidden></div>
                         <div id="primaryNotice" class="notice" hidden></div>
@@ -64,6 +69,18 @@
             const errorEl = root.querySelector('#formError');
             const noticeEl = root.querySelector('#primaryNotice');
             const clearFollow = root.querySelector('#clearFollow');
+            const randomButton = root.querySelector('#randomButton');
+            const randomFlag = root.querySelector('#randomFlag');
+            // 數字是否由「產生隨機數」填入；使用者手動改動後即視為直覺輸入
+            let numbersFromRandom = false;
+
+            randomButton.addEventListener('click', () => {
+                numbersEl.value = Core.randomNumbers().join(' ');
+                numbersFromRandom = true;
+                randomFlag.hidden = false;
+                showError('');
+                app.track('xiaoliuren_random_numbers');
+            });
 
             if (clearFollow) {
                 clearFollow.addEventListener('click', () => {
@@ -104,7 +121,7 @@
                     {
                         question,
                         category,
-                        rawInput: numbersEl.value.trim(),
+                        rawInput: (numbersFromRandom ? Core.RANDOM_PREFIX : '') + numbersEl.value.trim(),
                         numbers: calc.numbers,
                         palaces: calc.palaces,
                         interpretation: interpretation.summary,
@@ -140,7 +157,11 @@
                 cast(false);
             });
             questionEl.addEventListener('input', hideNotice);
-            numbersEl.addEventListener('input', () => showError(''));
+            numbersEl.addEventListener('input', () => {
+                showError('');
+                numbersFromRandom = false;
+                randomFlag.hidden = true;
+            });
 
             (follow ? numbersEl : questionEl).focus();
         },

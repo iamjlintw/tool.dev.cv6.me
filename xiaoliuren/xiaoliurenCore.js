@@ -121,6 +121,38 @@
     }
 
     /* ------------------------------------------------------------------ */
+    /* 隨機數                                                              */
+    /* ------------------------------------------------------------------ */
+
+    const RANDOM_MIN = 1;
+    const RANDOM_MAX = 99;
+    /** rawInput 以此前綴標示三個數字是隨機產生，而非使用者直覺輸入。 */
+    const RANDOM_PREFIX = '隨機：';
+
+    function randomInt(min, max, rng) {
+        const range = max - min + 1;
+        const c = root.crypto;
+        if (!rng && c && typeof c.getRandomValues === 'function') {
+            const arr = new Uint32Array(1);
+            c.getRandomValues(arr);
+            return min + (arr[0] % range);
+        }
+        return min + Math.floor((rng || Math.random)() * range);
+    }
+
+    /**
+     * 產生三個 1–99 的隨機整數。
+     * @param {() => number} [rng] 測試用，回傳 [0,1) 的函式
+     */
+    function randomNumbers(rng) {
+        return [0, 1, 2].map(() => randomInt(RANDOM_MIN, RANDOM_MAX, rng));
+    }
+
+    function isRandomRawInput(rawInput) {
+        return typeof rawInput === 'string' && rawInput.indexOf(RANDOM_PREFIX) === 0;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* 起課                                                                */
     /* ------------------------------------------------------------------ */
 
@@ -200,5 +232,10 @@
         calculateXiaoLiuRen,
         normalizeQuestionKey,
         isConflicting,
+        RANDOM_MIN,
+        RANDOM_MAX,
+        RANDOM_PREFIX,
+        randomNumbers,
+        isRandomRawInput,
     });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

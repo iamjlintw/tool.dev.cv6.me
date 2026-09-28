@@ -229,3 +229,9 @@ Hash router：`#/`（首頁）、`#/result/:id`、`#/history`、`#/validation`�
 - `node --test tests/*.test.js`：130 tests 全數通過（含九組固定 regression）。
 - 瀏覽器（Chrome，本機 http 靜態伺服）實測：起課 → 結果頁；同問題重複起課先提示、force 後標記 Repeated 並偵測矛盾；追問成為新 Primary 並保留來源；複製 Prompt；加備註；驗證標記與統計；匯入預覽（總筆數／可匯入／重複／錯誤）與合併寫入；刪除 Primary 後最早 Repeated 升格、追問改指向；主題三段切換不重新整理；390px 視口三頁皆無橫向溢出；SW scope 為 `/xiaoliuren/`，快取 19 個 shell 檔且不含上層資源；以 stub 攔截 gtag 確認事件只有 `xiaoliuren_*` 名稱與 `{ tool }`，不含問題或數字。
 - 已知限制：iOS 數字鍵盤（`inputmode="numeric"`）沒有空白與逗號，手機建議直接輸入六位數；主題切換後 `theme-color` 以當前背景色更新，部分瀏覽器僅在 PWA 模式反映；SW 版本需手動改 `VERSION`；`file://` 開啟時 SW 不註冊但其餘功能可用。
+
+## 17. 追加需求：隨機數（2026-09-28 確認）
+
+- 首頁「輸入三個直覺數字」下方加「產生三個隨機數」按鈕，以 `crypto.getRandomValues` 產生三個 1～99 的整數填入輸入框（範圍固定，不提供設定）。
+- 紀錄標示來源：`rawInput` 以「隨機：」為前綴（`XiaoLiuRenCore.RANDOM_PREFIX`），資料模型不另加欄位；結果頁與歷史頁顯示「隨機數」標籤，Prompt 加「數字來源：隨機產生（1～99）／直覺輸入」。使用者手動修改輸入框後即視為直覺輸入。
+- 隨機數只是輸入來源，起課演算法不變；analytics 只多一個 `xiaoliuren_random_numbers` 事件名稱。

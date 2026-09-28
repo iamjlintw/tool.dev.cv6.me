@@ -74,3 +74,8 @@ test('AiAdapter 只保留介面，無任何實作', () => {
     assert.deepEqual([...Prompt.AiAdapter.adapters], []);
     assert.equal(Prompt.AiAdapter.shape.name, 'string');
 });
+
+test('數字來源：隨機產生與直覺輸入分別標示', () => {
+    assert.match(Prompt.buildPrompt(Object.assign({}, reading, { rawInput: '73 59 35' })), /數字來源：\n直覺輸入/);
+    assert.match(Prompt.buildPrompt(Object.assign({}, reading, { rawInput: '隨機：73 59 35' })), /數字來源：\n隨機產生（1～99）/);
+});

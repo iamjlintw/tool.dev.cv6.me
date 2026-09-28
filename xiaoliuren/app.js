@@ -25,6 +25,9 @@
         numbersLabel: '輸入三個直覺數字',
         numbersPlaceholder: '73 59 35 或 735935',
         numbersHint: '三個數字用空白或逗號分開，或直接輸入六位數（每兩位一組）。每個數字需大於等於 1。',
+        randomNumbers: '產生三個隨機數',
+        randomBadge: '隨機數',
+        randomHint: '沒有直覺數字時可用隨機數（1～99），紀錄會標示為隨機產生。',
         cast: '起課',
         castAgain: '仍要起課（標記為重複起課）',
         hasPrimary: '此問題已有第一課，建議不要重複起課。',
@@ -151,6 +154,7 @@
                 : `<span class="badge repeated">${MESSAGES.repeatedBadge}</span>`,
         );
         if (record.conflictWithPrimary) parts.push('<span class="badge conflict">矛盾</span>');
+        if (Core.isRandomRawInput(record.rawInput)) parts.push(`<span class="badge">${MESSAGES.randomBadge}</span>`);
         parts.push(`<span class="badge">${esc(Core.categoryLabel(record.category))}</span>`);
         const label = StoreModule.VERIFICATION_LABELS[record.verification] || record.verification;
         parts.push(`<span class="badge verify-${esc(record.verification)}">${esc(label)}</span>`);
